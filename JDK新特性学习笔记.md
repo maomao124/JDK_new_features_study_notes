@@ -1808,3 +1808,381 @@ public class Test8
 
 
 ## Stream流
+
+### 概述
+
+Stream流式思想类似于工厂车间的“**生产流水线**”，Stream流不是一种数据结构，不保存数据，而是对数据进行加工处理。Stream可以看作是流水线上的一个工序。在流水线上，通过多个工序让一个原材料加工成一个商品
+
+Stream API能让我们快速完成许多复杂的操作，如筛选、切片、映射、查找、去除重复，统计，匹配和归约
+
+
+
+
+
+### 集合处理数据的弊端
+
+当我们需要对集合中的元素进行操作的时候，除了必需的添加、删除、获取外，最典型的就是集合遍历。我们来体验集合操作数据的弊端
+
+
+
+需求如下：
+
+* 一个 ArrayList集合中存储有以下数据:张无忌,周芷若,赵敏,张强,张三丰
+* 拿到所有姓张的
+* 拿到名字长度为3个字的
+* 打印这些数据
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/23
+ * Time(创建时间)： 18:31
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        ArrayList<String> list = new ArrayList<>();
+        Collections.addAll(list, "张无忌", "周芷若", "赵敏", "张强", "张三丰");
+        //拿到所有姓张的
+        ArrayList<String> zhangList = new ArrayList<>();
+        for (String name : list)
+        {
+            if (name.startsWith("张"))
+            {
+                zhangList.add(name);
+            }
+        }
+
+        //拿到名字长度为3个字的
+        ArrayList<String> threeList = new ArrayList<>();
+        for (String name : zhangList)
+        {
+            if (name.length() == 3)
+            {
+                threeList.add(name);
+            }
+        }
+        //打印这些数据
+        for (String name : threeList)
+        {
+            System.out.println(name);
+        }
+    }
+}
+
+```
+
+
+
+
+
+### Stream写法
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 15:24
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        ArrayList<String> list = new ArrayList<>();
+        Collections.addAll(list, "张无忌", "周芷若", "赵敏", "张强", "张三丰");
+        list.stream()
+                .filter(s -> s.startsWith("张"))
+                .filter(s -> s.length() == 3)
+                .forEach(System.out::println);
+    }
+}
+```
+
+
+
+
+
+
+
+### 获取Stream流
+
+两种方式：
+
+* **方式1** : 根据Collection获取流
+* **方式2** : Stream中的静态方法of获取流
+
+
+
+
+
+#### 方式1
+
+java.util.Collection 接口中加入了default方法stream 用来获取流，所以其所有实现类均可获取流
+
+Map接口不是Collection的子接口，所以获取对应的流需要分key、value或entry等情况
+
+```java
+public interface Collection<E> extends Iterable<E> {
+    /**
+     * Returns a sequential {@code Stream} with this collection as its source.
+     *
+     * <p>This method should be overridden when the {@link #spliterator()}
+     * method cannot return a spliterator that is {@code IMMUTABLE},
+     * {@code CONCURRENT}, or <em>late-binding</em>. (See {@link #spliterator()}
+     * for details.)
+     *
+     * @implSpec
+     * The default implementation creates a sequential {@code Stream} from the
+     * collection's {@code Spliterator}.
+     *
+     * @return a sequential {@code Stream} over the elements in this collection
+     * @since 1.8
+     */
+    default Stream<E> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+}
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.*;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 15:34
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        Stream<String> stream = list.stream();
+        List<Long> longList = new LinkedList<>();
+        Stream<Long> longStream = longList.stream();
+        Set<String> stringSet = new HashSet<>();
+        Stream<String> stringStream = stringSet.stream();
+        //Map接口不是Collection的子接口，所以获取对应的流需要分key、value或entry等情况
+        Map<String, Long> map = new HashMap<>();
+        Stream<String> stream1 = map.keySet().stream();
+        Stream<Long> stream2 = map.values().stream();
+        Stream<Map.Entry<String, Long>> stream3 = map.entrySet().stream();
+    }
+}
+```
+
+
+
+
+
+
+
+#### 方式2
+
+由于数组对象不可能添加默认方法，所以Stream接口中提供了静态方法of
+
+```java
+public interface Stream<T> extends BaseStream<T, Stream<T>> {
+    /**
+     * Returns a sequential {@code Stream} containing a single element.
+     *
+     * @param t the single element
+     * @param <T> the type of stream elements
+     * @return a singleton sequential stream
+     */
+    public static<T> Stream<T> of(T t) {
+        return StreamSupport.stream(new Streams.StreamBuilderImpl<>(t), false);
+    }
+
+    /**
+     * Returns a sequential ordered stream whose elements are the specified values.
+     *
+     * @param <T> the type of stream elements
+     * @param values the elements of the new stream
+     * @return the new stream
+     */
+    @SafeVarargs
+    @SuppressWarnings("varargs") // Creating a stream from an array is safe
+    public static<T> Stream<T> of(T... values) {
+        return Arrays.stream(values);
+    }
+}
+```
+
+
+
+```java
+package mao;
+
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test4
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 15:40
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test4
+{
+    public static void main(String[] args)
+    {
+        Stream<String> stringStream = Stream.of("1", "2", "3");
+    }
+}
+```
+
+
+
+
+
+
+
+### Stream常用方法
+
+* count：统计个数
+* forEach：逐一处理
+* filter：过滤
+* limit：取用前几个
+* skip：跳过前几个
+* map：映射
+* concat：组合
+
+
+
+
+
+### forEach方法
+
+forEach 用来遍历流中的数据
+
+```java
+
+    /**
+     * Performs an action for each element of this stream.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * <p>The behavior of this operation is explicitly nondeterministic.
+     * For parallel stream pipelines, this operation does <em>not</em>
+     * guarantee to respect the encounter order of the stream, as doing so
+     * would sacrifice the benefit of parallelism.  For any given element, the
+     * action may be performed at whatever time and in whatever thread the
+     * library chooses.  If the action accesses shared state, it is
+     * responsible for providing the required synchronization.
+     *
+     * @param action a <a href="package-summary.html#NonInterference">
+     *               non-interfering</a> action to perform on the elements
+     */
+    void forEach(Consumer<? super T> action);
+```
+
+
+
+该方法接收一个Consumer接口函数，会将每一个流元素交给该函数进行处理
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test5
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 15:49
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test5
+{
+    public static void main(String[] args)
+    {
+        List<String> list=new ArrayList<>(5);
+        list.add("1");
+        list.add("2");
+        list.add("3");
+        list.add("4");
+        list.add("5");
+        list.stream().forEach(System.out::println);
+        //list.forEach(System.out::println);
+
+        list.stream().forEach(new Consumer<String>()
+        {
+            @Override
+            public void accept(String s)
+            {
+                System.out.println(s);
+            }
+        });
+    }
+}
+
+```
+
+
+
+
+
+### count方法
+
