@@ -2186,3 +2186,663 @@ public class Test5
 
 ### count方法
 
+统计其中的元素个数
+
+```java
+    /**
+     * Returns the count of elements in this stream.  This is a special case of
+     * a <a href="package-summary.html#Reduction">reduction</a> and is
+     * equivalent to:
+     * <pre>{@code
+     *     return mapToLong(e -> 1L).sum();
+     * }</pre>
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal operation</a>.
+     *
+     * @return the count of elements in this stream
+     */
+    long count();
+```
+
+
+
+该方法返回一个long值代表元素个数
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test6
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 15:55
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test6
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>(5);
+        list.add("1");
+        list.add("2");
+        list.add("3");
+        list.add("4");
+        list.add("5");
+        System.out.println(list.stream().count());
+        System.out.println(list.size());
+        list.add("6");
+        System.out.println(list.stream().count());
+        System.out.println(list.size());
+        Stream<String> stream = list.stream();
+        list.add("7");
+        System.out.println(stream.count());
+    }
+}
+```
+
+
+
+```sh
+5
+5
+6
+6
+7
+```
+
+
+
+
+
+
+
+### filter方法
+
+filter用于过滤数据，返回符合过滤条件的数据，可以通过filter方法将一个流转换成另一个子集流
+
+```java
+
+    /**
+     * Returns a stream consisting of the elements of this stream that match
+     * the given predicate.
+     *
+     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
+     * operation</a>.
+     *
+     * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                  <a href="package-summary.html#Statelessness">stateless</a>
+     *                  predicate to apply to each element to determine if it
+     *                  should be included
+     * @return the new stream
+     */
+    Stream<T> filter(Predicate<? super T> predicate);
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test7
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 16:01
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test7
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>(5);
+        list.add("1");
+        list.add("2");
+        list.add("3");
+        list.add("4");
+        list.add("5");
+        //只要2和5
+        Stream<String> stream = list.stream().filter(new Predicate<String>()
+        {
+            @Override
+            public boolean test(String s)
+            {
+                if (s.equals("2") || s.equals("5"))
+                {
+                    return true;
+                }
+                return false;
+            }
+        });
+        stream.forEach(System.out::println);
+    }
+}
+```
+
+
+
+```sh
+2
+5
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test8
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 16:04
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test8
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        List<String> collect = list.stream().filter(s -> s.length() >= 3)
+                .filter(s -> s.length() <= 10)
+                .filter(s -> s.endsWith("]"))
+                .filter(s -> s.startsWith("["))
+                .collect(Collectors.toList());
+    }
+}
+```
+
+
+
+
+
+### limit方法
+
+limit 方法可以对流进行截取，只取用前n个
+
+```java
+/**
+ * Returns a stream consisting of the elements of this stream, truncated
+ * to be no longer than {@code maxSize} in length.
+ *
+ * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+ * stateful intermediate operation</a>.
+ *
+ * @apiNote
+ * While {@code limit()} is generally a cheap operation on sequential
+ * stream pipelines, it can be quite expensive on ordered parallel pipelines,
+ * especially for large values of {@code maxSize}, since {@code limit(n)}
+ * is constrained to return not just any <em>n</em> elements, but the
+ * <em>first n</em> elements in the encounter order.  Using an unordered
+ * stream source (such as {@link #generate(Supplier)}) or removing the
+ * ordering constraint with {@link #unordered()} may result in significant
+ * speedups of {@code limit()} in parallel pipelines, if the semantics of
+ * your situation permit.  If consistency with encounter order is required,
+ * and you are experiencing poor performance or memory utilization with
+ * {@code limit()} in parallel pipelines, switching to sequential execution
+ * with {@link #sequential()} may improve performance.
+ *
+ * @param maxSize the number of elements the stream should be limited to
+ * @return the new stream
+ * @throws IllegalArgumentException if {@code maxSize} is negative
+ */
+Stream<T> limit(long maxSize);
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test9
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 16:09
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test9
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>(100);
+        for (int i = 0; i < 100; i++)
+        {
+            list.add(i);
+        }
+        System.out.println(list.stream().limit(5).collect(Collectors.toList()));
+        System.out.println(list.stream().limit(10).collect(Collectors.toList()));
+        System.out.println(list.stream().limit(20).collect(Collectors.toList()));
+        System.out.println(list.stream().limit(1).collect(Collectors.toList()));
+        System.out.println(list.stream().limit(0).collect(Collectors.toList()));
+        System.out.println(list.stream().limit(300).collect(Collectors.toList()));
+    }
+}
+```
+
+
+
+```sh
+[0, 1, 2, 3, 4]
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+[0]
+[]
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+```
+
+
+
+
+
+### skip方法
+
+如果希望跳过前几个元素，可以使用此方法获取一个截取之后的新流
+
+```java
+    /**
+     * Returns a stream consisting of the remaining elements of this stream
+     * after discarding the first {@code n} elements of the stream.
+     * If this stream contains fewer than {@code n} elements then an
+     * empty stream will be returned.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">stateful
+     * intermediate operation</a>.
+     *
+     * @apiNote
+     * While {@code skip()} is generally a cheap operation on sequential
+     * stream pipelines, it can be quite expensive on ordered parallel pipelines,
+     * especially for large values of {@code n}, since {@code skip(n)}
+     * is constrained to skip not just any <em>n</em> elements, but the
+     * <em>first n</em> elements in the encounter order.  Using an unordered
+     * stream source (such as {@link #generate(Supplier)}) or removing the
+     * ordering constraint with {@link #unordered()} may result in significant
+     * speedups of {@code skip()} in parallel pipelines, if the semantics of
+     * your situation permit.  If consistency with encounter order is required,
+     * and you are experiencing poor performance or memory utilization with
+     * {@code skip()} in parallel pipelines, switching to sequential execution
+     * with {@link #sequential()} may improve performance.
+     *
+     * @param n the number of leading elements to skip
+     * @return the new stream
+     * @throws IllegalArgumentException if {@code n} is negative
+     */
+    Stream<T> skip(long n);
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test10
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/25
+ * Time(创建时间)： 16:13
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test10
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>(100);
+        for (int i = 0; i < 100; i++)
+        {
+            list.add(i);
+        }
+        System.out.println(list.stream().skip(80).collect(Collectors.toList()));
+        System.out.println(list.stream().skip(95).collect(Collectors.toList()));
+        System.out.println(list.stream().skip(100).collect(Collectors.toList()));
+        System.out.println(list.stream().skip(99).collect(Collectors.toList()));
+        System.out.println(list.stream().skip(101).collect(Collectors.toList()));
+        System.out.println(list.stream().skip(0).collect(Collectors.toList()));
+    }
+}
+```
+
+
+
+```sh
+[80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+[95, 96, 97, 98, 99]
+[]
+[99]
+[]
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+```
+
+
+
+
+
+
+
+### map方法
+
+如果需要将流中的元素映射到另一个流中，可以使用 map 方法
+
+```java
+/**
+     * Returns a stream consisting of the results of applying the given
+     * function to the elements of this stream.
+     *
+     * <p>This is an <a href="package-summary.html#StreamOps">intermediate
+     * operation</a>.
+     *
+     * @param <R> The element type of the new stream
+     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *               <a href="package-summary.html#Statelessness">stateless</a>
+     *               function to apply to each element
+     * @return the new stream
+     */
+    <R> Stream<R> map(Function<? super T, ? extends R> mapper);
+```
+
+
+
+可以将当前流中的T类型数据转换为另一种R类型的流
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test11
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 10:33
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test11
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        list.add("3");
+        list.add("2");
+        list.add("9");
+        List<Long> longList = list.stream().map(new Function<String, Long>()
+        {
+            @Override
+            public Long apply(String s)
+            {
+                return Long.parseLong(s);
+            }
+        }).collect(Collectors.toList());
+        System.out.println(longList);
+        list.stream().map(Long::parseLong).forEach(System.out::println);
+    }
+}
+```
+
+
+
+```sh
+[3, 2, 9]
+3
+2
+9
+```
+
+
+
+
+
+### sorted方法
+
+如果需要将数据排序，可以使用sorted方法
+
+```java
+    /**
+     * Returns a stream consisting of the elements of this stream, sorted
+     * according to natural order.  If the elements of this stream are not
+     * {@code Comparable}, a {@code java.lang.ClassCastException} may be thrown
+     * when the terminal operation is executed.
+     *
+     * <p>For ordered streams, the sort is stable.  For unordered streams, no
+     * stability guarantees are made.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">stateful
+     * intermediate operation</a>.
+     *
+     * @return the new stream
+     */
+    Stream<T> sorted();
+
+    /**
+     * Returns a stream consisting of the elements of this stream, sorted
+     * according to the provided {@code Comparator}.
+     *
+     * <p>For ordered streams, the sort is stable.  For unordered streams, no
+     * stability guarantees are made.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">stateful
+     * intermediate operation</a>.
+     *
+     * @param comparator a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                   <a href="package-summary.html#Statelessness">stateless</a>
+     *                   {@code Comparator} to be used to compare stream elements
+     * @return the new stream
+     */
+    Stream<T> sorted(Comparator<? super T> comparator);
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test12
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 10:42
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test12
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        list.add("3");
+        list.add("2");
+        list.add("9");
+        list.add("4");
+        System.out.println(list.stream().sorted().collect(Collectors.toList()));
+        System.out.println(list.stream().sorted(new Comparator<String>()
+        {
+            @Override
+            public int compare(String o1, String o2)
+            {
+                return o2.compareTo(o1);
+            }
+        }).collect(Collectors.toList()));
+        System.out.println(list.stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList()));
+    }
+}
+```
+
+
+
+```sh
+[2, 3, 4, 9]
+[9, 4, 3, 2]
+[9, 4, 3, 2]
+```
+
+
+
+
+
+### distinct方法
+
+如果需要去除重复数据，可以使用 distinct 方法
+
+```java
+    /**
+     * Returns a stream consisting of the distinct elements (according to
+     * {@link Object#equals(Object)}) of this stream.
+     *
+     * <p>For ordered streams, the selection of distinct elements is stable
+     * (for duplicated elements, the element appearing first in the encounter
+     * order is preserved.)  For unordered streams, no stability guarantees
+     * are made.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">stateful
+     * intermediate operation</a>.
+     *
+     * @apiNote
+     * Preserving stability for {@code distinct()} in parallel pipelines is
+     * relatively expensive (requires that the operation act as a full barrier,
+     * with substantial buffering overhead), and stability is often not needed.
+     * Using an unordered stream source (such as {@link #generate(Supplier)})
+     * or removing the ordering constraint with {@link #unordered()} may result
+     * in significantly more efficient execution for {@code distinct()} in parallel
+     * pipelines, if the semantics of your situation permit.  If consistency
+     * with encounter order is required, and you are experiencing poor performance
+     * or memory utilization with {@code distinct()} in parallel pipelines,
+     * switching to sequential execution with {@link #sequential()} may improve
+     * performance.
+     *
+     * @return the new stream
+     */
+    Stream<T> distinct();
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test13
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 10:47
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test13
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        list.add("3");
+        list.add("2");
+        list.add("9");
+        list.add("9");
+        list.add("2");
+        System.out.println(list.stream().distinct().collect(Collectors.toList()));
+    }
+}
+```
+
+
+
+```sh
+[3, 2, 9]
+```
+
+
+
+
+
+自定义类型是根据对象的hashCode和equals来去除重复元素的
+
+
+
+
+
+### match方法
+
