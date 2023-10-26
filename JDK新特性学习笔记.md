@@ -2846,3 +2846,510 @@ public class Test13
 
 ### match方法
 
+如果需要判断数据是否匹配指定的条件，可以使用 Match 相关方法
+
+```java
+/**
+     * Returns whether any elements of this stream match the provided
+     * predicate.  May not evaluate the predicate on all elements if not
+     * necessary for determining the result.  If the stream is empty then
+     * {@code false} is returned and the predicate is not evaluated.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+     * terminal operation</a>.
+     *
+     * @apiNote
+     * This method evaluates the <em>existential quantification</em> of the
+     * predicate over the elements of the stream (for some x P(x)).
+     *
+     * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                  <a href="package-summary.html#Statelessness">stateless</a>
+     *                  predicate to apply to elements of this stream
+     * @return {@code true} if any elements of the stream match the provided
+     * predicate, otherwise {@code false}
+     */
+    boolean anyMatch(Predicate<? super T> predicate);
+
+    /**
+     * Returns whether all elements of this stream match the provided predicate.
+     * May not evaluate the predicate on all elements if not necessary for
+     * determining the result.  If the stream is empty then {@code true} is
+     * returned and the predicate is not evaluated.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+     * terminal operation</a>.
+     *
+     * @apiNote
+     * This method evaluates the <em>universal quantification</em> of the
+     * predicate over the elements of the stream (for all x P(x)).  If the
+     * stream is empty, the quantification is said to be <em>vacuously
+     * satisfied</em> and is always {@code true} (regardless of P(x)).
+     *
+     * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                  <a href="package-summary.html#Statelessness">stateless</a>
+     *                  predicate to apply to elements of this stream
+     * @return {@code true} if either all elements of the stream match the
+     * provided predicate or the stream is empty, otherwise {@code false}
+     */
+    boolean allMatch(Predicate<? super T> predicate);
+
+    /**
+     * Returns whether no elements of this stream match the provided predicate.
+     * May not evaluate the predicate on all elements if not necessary for
+     * determining the result.  If the stream is empty then {@code true} is
+     * returned and the predicate is not evaluated.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+     * terminal operation</a>.
+     *
+     * @apiNote
+     * This method evaluates the <em>universal quantification</em> of the
+     * negated predicate over the elements of the stream (for all x ~P(x)).  If
+     * the stream is empty, the quantification is said to be vacuously satisfied
+     * and is always {@code true}, regardless of P(x).
+     *
+     * @param predicate a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                  <a href="package-summary.html#Statelessness">stateless</a>
+     *                  predicate to apply to elements of this stream
+     * @return {@code true} if either no elements of the stream match the
+     * provided predicate or the stream is empty, otherwise {@code false}
+     */
+    boolean noneMatch(Predicate<? super T> predicate);
+```
+
+
+
+* allMatch: 元素是否全部满足条件
+* anyMatch: 元素是否任意有一个满足条件
+* noneMatch: 元素是否全部不满足条件
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test14
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 11:45
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test14
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>(100);
+        for (int i = 0; i < 100; i++)
+        {
+            list.add(i);
+        }
+        System.out.println(list.stream().allMatch(new Predicate<Integer>()
+        {
+            @Override
+            public boolean test(Integer integer)
+            {
+                return integer > 20;
+            }
+        }));
+        System.out.println(list.stream().allMatch(integer -> integer > -2));
+        System.out.println(list.stream().anyMatch(integer -> integer > 60));
+        System.out.println(list.stream().anyMatch(integer -> integer > -3));
+        System.out.println(list.stream().anyMatch(integer -> integer > 120));
+        System.out.println(list.stream().noneMatch(integer -> integer > 60));
+        System.out.println(list.stream().noneMatch(integer -> integer > -3));
+        System.out.println(list.stream().noneMatch(integer -> integer > 120));
+    }
+}
+```
+
+
+
+```sh
+false
+true
+true
+true
+false
+false
+false
+true
+```
+
+
+
+
+
+### find方法
+
+如果需要找到某些数据，可以使用 find方法
+
+```java
+
+    /**
+     * Returns an {@link Optional} describing the first element of this stream,
+     * or an empty {@code Optional} if the stream is empty.  If the stream has
+     * no encounter order, then any element may be returned.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+     * terminal operation</a>.
+     *
+     * @return an {@code Optional} describing the first element of this stream,
+     * or an empty {@code Optional} if the stream is empty
+     * @throws NullPointerException if the element selected is null
+     */
+    Optional<T> findFirst();
+
+    /**
+     * Returns an {@link Optional} describing some element of the stream, or an
+     * empty {@code Optional} if the stream is empty.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">short-circuiting
+     * terminal operation</a>.
+     *
+     * <p>The behavior of this operation is explicitly nondeterministic; it is
+     * free to select any element in the stream.  This is to allow for maximal
+     * performance in parallel operations; the cost is that multiple invocations
+     * on the same source may not return the same result.  (If a stable result
+     * is desired, use {@link #findFirst()} instead.)
+     *
+     * @return an {@code Optional} describing some element of this stream, or an
+     * empty {@code Optional} if the stream is empty
+     * @throws NullPointerException if the element selected is null
+     * @see #findFirst()
+     */
+    Optional<T> findAny();
+```
+
+
+
+
+
+### max和min方法
+
+如果需要获取最大和最小值，可以使用 max 和min 方法
+
+```java
+
+    /**
+     * Returns the minimum element of this stream according to the provided
+     * {@code Comparator}.  This is a special case of a
+     * <a href="package-summary.html#Reduction">reduction</a>.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal operation</a>.
+     *
+     * @param comparator a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                   <a href="package-summary.html#Statelessness">stateless</a>
+     *                   {@code Comparator} to compare elements of this stream
+     * @return an {@code Optional} describing the minimum element of this stream,
+     * or an empty {@code Optional} if the stream is empty
+     * @throws NullPointerException if the minimum element is null
+     */
+    Optional<T> min(Comparator<? super T> comparator);
+
+    /**
+     * Returns the maximum element of this stream according to the provided
+     * {@code Comparator}.  This is a special case of a
+     * <a href="package-summary.html#Reduction">reduction</a>.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @param comparator a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                   <a href="package-summary.html#Statelessness">stateless</a>
+     *                   {@code Comparator} to compare elements of this stream
+     * @return an {@code Optional} describing the maximum element of this stream,
+     * or an empty {@code Optional} if the stream is empty
+     * @throws NullPointerException if the maximum element is null
+     */
+    Optional<T> max(Comparator<? super T> comparator);
+```
+
+
+
+```java
+package mao;
+
+import java.util.*;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test16
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 12:02
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test16
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>(100);
+        for (int i = 1000; i < 1100; i++)
+        {
+            list.add(i);
+        }
+        Collections.shuffle(list);
+        System.out.println(list);
+        System.out.println(list.stream().max(new Comparator<Integer>()
+        {
+            @Override
+            public int compare(Integer o1, Integer o2)
+            {
+                return o1-o2;
+            }
+        }).get());
+        System.out.println(list.stream().min(new Comparator<Integer>()
+        {
+            @Override
+            public int compare(Integer o1, Integer o2)
+            {
+                return o1-o2;
+            }
+        }).get());
+    }
+}
+```
+
+
+
+```sh
+[1046, 1052, 1042, 1036, 1099, 1041, 1027, 1007, 1092, 1047, 1093, 1040, 1054, 1075, 1003, 1016, 1008, 1070, 1051, 1056, 1095, 1065, 1029, 1096, 1017, 1067, 1073, 1038, 1055, 1000, 1062, 1071, 1044, 1066, 1002, 1085, 1079, 1020, 1048, 1053, 1023, 1068, 1082, 1035, 1022, 1045, 1012, 1034, 1050, 1074, 1009, 1043, 1057, 1024, 1059, 1086, 1049, 1037, 1089, 1063, 1013, 1077, 1090, 1058, 1001, 1033, 1097, 1010, 1011, 1069, 1061, 1088, 1026, 1018, 1091, 1094, 1028, 1014, 1019, 1084, 1031, 1004, 1083, 1006, 1081, 1025, 1030, 1064, 1039, 1060, 1072, 1098, 1015, 1005, 1078, 1032, 1080, 1021, 1087, 1076]
+1099
+1000
+```
+
+
+
+
+
+
+
+### reduce方法
+
+如果需要将所有数据归纳得到一个数据，可以使用reduce方法
+
+```java
+
+    /**
+     * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
+     * elements of this stream, using the provided identity value and an
+     * <a href="package-summary.html#Associativity">associative</a>
+     * accumulation function, and returns the reduced value.  This is equivalent
+     * to:
+     * <pre>{@code
+     *     T result = identity;
+     *     for (T element : this stream)
+     *         result = accumulator.apply(result, element)
+     *     return result;
+     * }</pre>
+     *
+     * but is not constrained to execute sequentially.
+     *
+     * <p>The {@code identity} value must be an identity for the accumulator
+     * function. This means that for all {@code t},
+     * {@code accumulator.apply(identity, t)} is equal to {@code t}.
+     * The {@code accumulator} function must be an
+     * <a href="package-summary.html#Associativity">associative</a> function.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @apiNote Sum, min, max, average, and string concatenation are all special
+     * cases of reduction. Summing a stream of numbers can be expressed as:
+     *
+     * <pre>{@code
+     *     Integer sum = integers.reduce(0, (a, b) -> a+b);
+     * }</pre>
+     *
+     * or:
+     *
+     * <pre>{@code
+     *     Integer sum = integers.reduce(0, Integer::sum);
+     * }</pre>
+     *
+     * <p>While this may seem a more roundabout way to perform an aggregation
+     * compared to simply mutating a running total in a loop, reduction
+     * operations parallelize more gracefully, without needing additional
+     * synchronization and with greatly reduced risk of data races.
+     *
+     * @param identity the identity value for the accumulating function
+     * @param accumulator an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for combining two values
+     * @return the result of the reduction
+     */
+    T reduce(T identity, BinaryOperator<T> accumulator);
+
+    /**
+     * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
+     * elements of this stream, using an
+     * <a href="package-summary.html#Associativity">associative</a> accumulation
+     * function, and returns an {@code Optional} describing the reduced value,
+     * if any. This is equivalent to:
+     * <pre>{@code
+     *     boolean foundAny = false;
+     *     T result = null;
+     *     for (T element : this stream) {
+     *         if (!foundAny) {
+     *             foundAny = true;
+     *             result = element;
+     *         }
+     *         else
+     *             result = accumulator.apply(result, element);
+     *     }
+     *     return foundAny ? Optional.of(result) : Optional.empty();
+     * }</pre>
+     *
+     * but is not constrained to execute sequentially.
+     *
+     * <p>The {@code accumulator} function must be an
+     * <a href="package-summary.html#Associativity">associative</a> function.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @param accumulator an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for combining two values
+     * @return an {@link Optional} describing the result of the reduction
+     * @throws NullPointerException if the result of the reduction is null
+     * @see #reduce(Object, BinaryOperator)
+     * @see #min(Comparator)
+     * @see #max(Comparator)
+     */
+    Optional<T> reduce(BinaryOperator<T> accumulator);
+
+    /**
+     * Performs a <a href="package-summary.html#Reduction">reduction</a> on the
+     * elements of this stream, using the provided identity, accumulation and
+     * combining functions.  This is equivalent to:
+     * <pre>{@code
+     *     U result = identity;
+     *     for (T element : this stream)
+     *         result = accumulator.apply(result, element)
+     *     return result;
+     * }</pre>
+     *
+     * but is not constrained to execute sequentially.
+     *
+     * <p>The {@code identity} value must be an identity for the combiner
+     * function.  This means that for all {@code u}, {@code combiner(identity, u)}
+     * is equal to {@code u}.  Additionally, the {@code combiner} function
+     * must be compatible with the {@code accumulator} function; for all
+     * {@code u} and {@code t}, the following must hold:
+     * <pre>{@code
+     *     combiner.apply(u, accumulator.apply(identity, t)) == accumulator.apply(u, t)
+     * }</pre>
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @apiNote Many reductions using this form can be represented more simply
+     * by an explicit combination of {@code map} and {@code reduce} operations.
+     * The {@code accumulator} function acts as a fused mapper and accumulator,
+     * which can sometimes be more efficient than separate mapping and reduction,
+     * such as when knowing the previously reduced value allows you to avoid
+     * some computation.
+     *
+     * @param <U> The type of the result
+     * @param identity the identity value for the combiner function
+     * @param accumulator an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for incorporating an additional element into a result
+     * @param combiner an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for combining two values, which must be
+     *                    compatible with the accumulator function
+     * @return the result of the reduction
+     * @see #reduce(BinaryOperator)
+     * @see #reduce(Object, BinaryOperator)
+     */
+    <U> U reduce(U identity,
+                 BiFunction<U, ? super T, U> accumulator,
+                 BinaryOperator<U> combiner);
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test17
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 16:26
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test17
+{
+    public static void main(String[] args)
+    {
+        int reduce = Stream.of(4, 5, 3, 9)
+                .reduce(0, (a, b) ->
+                {
+                    System.out.println("a = " + a + ", b = " + b);
+                    return a + b;
+                });
+        int reduce2 = Stream.of(4, 5, 3, 9)
+                .reduce(0, Integer::sum);
+        int max = Stream.of(4, 5, 3, 9)
+                .reduce(0, (x, y) -> x > y ? x : y);
+        System.out.println(reduce);
+        System.out.println(reduce2);
+        System.out.println(max);
+    }
+}
+```
+
+
+
+```sh
+a = 0, b = 4
+a = 4, b = 5
+a = 9, b = 3
+a = 12, b = 9
+21
+21
+9
+```
+
+
+
+
+
+
+
+### mapToInt方法
+
