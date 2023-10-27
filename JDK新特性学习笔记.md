@@ -3353,3 +3353,802 @@ a = 12, b = 9
 
 ### mapToInt方法
 
+如果需要将Stream中的Integer类型数据转成int类型，可以使用mapToInt方法
+
+```java
+
+    /**
+     * Returns an {@code IntStream} consisting of the results of applying the
+     * given function to the elements of this stream.
+     *
+     * <p>This is an <a href="package-summary.html#StreamOps">
+     *     intermediate operation</a>.
+     *
+     * @param mapper a <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *               <a href="package-summary.html#Statelessness">stateless</a>
+     *               function to apply to each element
+     * @return the new stream
+     */
+    IntStream mapToInt(ToIntFunction<? super T> mapper);
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntConsumer;
+import java.util.function.ToIntFunction;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test18
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 16:35
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test18
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1005; i++)
+        {
+            list.add(i);
+        }
+        list.stream().mapToInt(new ToIntFunction<Integer>()
+        {
+            @Override
+            public int applyAsInt(Integer value)
+            {
+                return value;
+            }
+        }).forEach(new IntConsumer()
+        {
+            @Override
+            public void accept(int value)
+            {
+                System.out.println(value);
+            }
+        });
+        list.stream().mapToInt(value -> value).forEach(System.out::println);
+    }
+}
+```
+
+
+
+```sh
+1000
+1001
+1002
+1003
+1004
+1000
+1001
+1002
+1003
+1004
+```
+
+
+
+
+
+### concat方法
+
+如果有两个流，希望合并成为一个流，那么可以使用Stream接口的静态方法concat
+
+```java
+
+    /**
+     * Creates a lazily concatenated stream whose elements are all the
+     * elements of the first stream followed by all the elements of the
+     * second stream.  The resulting stream is ordered if both
+     * of the input streams are ordered, and parallel if either of the input
+     * streams is parallel.  When the resulting stream is closed, the close
+     * handlers for both input streams are invoked.
+     *
+     * @implNote
+     * Use caution when constructing streams from repeated concatenation.
+     * Accessing an element of a deeply concatenated stream can result in deep
+     * call chains, or even {@code StackOverflowException}.
+     *
+     * @param <T> The type of stream elements
+     * @param a the first stream
+     * @param b the second stream
+     * @return the concatenation of the two input streams
+     */
+    public static <T> Stream<T> concat(Stream<? extends T> a, Stream<? extends T> b) {
+        Objects.requireNonNull(a);
+        Objects.requireNonNull(b);
+
+        @SuppressWarnings("unchecked")
+        Spliterator<T> split = new Streams.ConcatSpliterator.OfRef<>(
+                (Spliterator<T>) a.spliterator(), (Spliterator<T>) b.spliterator());
+        Stream<T> stream = StreamSupport.stream(split, a.isParallel() || b.isParallel());
+        return stream.onClose(Streams.composedClose(a, b));
+    }
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test19
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 16:50
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test19
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list1 = new ArrayList<>();
+        for (int i = 1000; i < 1005; i++)
+        {
+            list1.add(i);
+        }
+        List<Integer> list2 = new ArrayList<>();
+        for (int i = 2000; i < 2005; i++)
+        {
+            list2.add(i);
+        }
+        Stream<Integer> stream = Stream.concat(list1.stream(), list2.stream());
+        System.out.println(stream.collect(Collectors.toList()));
+    }
+}
+```
+
+
+
+```sh
+[1000, 1001, 1002, 1003, 1004, 2000, 2001, 2002, 2003, 2004]
+```
+
+
+
+
+
+
+
+### Stream流中的结果到集合中
+
+Stream流提供collect方法，其参数需要一个java.util.stream.Collector接口对象来指定收集到哪 种集合中。java.util.stream.Collectors类提供一些方法，可以作为Collector接口的实例
+
+* public static  Collector> toList()：转换为List集合
+* public static  Collector> toSet()：转换为Set集合
+
+
+
+```java
+    /**
+     * Performs a <a href="package-summary.html#MutableReduction">mutable
+     * reduction</a> operation on the elements of this stream.  A mutable
+     * reduction is one in which the reduced value is a mutable result container,
+     * such as an {@code ArrayList}, and elements are incorporated by updating
+     * the state of the result rather than by replacing the result.  This
+     * produces a result equivalent to:
+     * <pre>{@code
+     *     R result = supplier.get();
+     *     for (T element : this stream)
+     *         accumulator.accept(result, element);
+     *     return result;
+     * }</pre>
+     *
+     * <p>Like {@link #reduce(Object, BinaryOperator)}, {@code collect} operations
+     * can be parallelized without requiring additional synchronization.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @apiNote There are many existing classes in the JDK whose signatures are
+     * well-suited for use with method references as arguments to {@code collect()}.
+     * For example, the following will accumulate strings into an {@code ArrayList}:
+     * <pre>{@code
+     *     List<String> asList = stringStream.collect(ArrayList::new, ArrayList::add,
+     *                                                ArrayList::addAll);
+     * }</pre>
+     *
+     * <p>The following will take a stream of strings and concatenates them into a
+     * single string:
+     * <pre>{@code
+     *     String concat = stringStream.collect(StringBuilder::new, StringBuilder::append,
+     *                                          StringBuilder::append)
+     *                                 .toString();
+     * }</pre>
+     *
+     * @param <R> type of the result
+     * @param supplier a function that creates a new result container. For a
+     *                 parallel execution, this function may be called
+     *                 multiple times and must return a fresh value each time.
+     * @param accumulator an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for incorporating an additional element into a result
+     * @param combiner an <a href="package-summary.html#Associativity">associative</a>,
+     *                    <a href="package-summary.html#NonInterference">non-interfering</a>,
+     *                    <a href="package-summary.html#Statelessness">stateless</a>
+     *                    function for combining two values, which must be
+     *                    compatible with the accumulator function
+     * @return the result of the reduction
+     */
+    <R> R collect(Supplier<R> supplier,
+                  BiConsumer<R, ? super T> accumulator,
+                  BiConsumer<R, R> combiner);
+
+    /**
+     * Performs a <a href="package-summary.html#MutableReduction">mutable
+     * reduction</a> operation on the elements of this stream using a
+     * {@code Collector}.  A {@code Collector}
+     * encapsulates the functions used as arguments to
+     * {@link #collect(Supplier, BiConsumer, BiConsumer)}, allowing for reuse of
+     * collection strategies and composition of collect operations such as
+     * multiple-level grouping or partitioning.
+     *
+     * <p>If the stream is parallel, and the {@code Collector}
+     * is {@link Collector.Characteristics#CONCURRENT concurrent}, and
+     * either the stream is unordered or the collector is
+     * {@link Collector.Characteristics#UNORDERED unordered},
+     * then a concurrent reduction will be performed (see {@link Collector} for
+     * details on concurrent reduction.)
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * <p>When executed in parallel, multiple intermediate results may be
+     * instantiated, populated, and merged so as to maintain isolation of
+     * mutable data structures.  Therefore, even when executed in parallel
+     * with non-thread-safe data structures (such as {@code ArrayList}), no
+     * additional synchronization is needed for a parallel reduction.
+     *
+     * @apiNote
+     * The following will accumulate strings into an ArrayList:
+     * <pre>{@code
+     *     List<String> asList = stringStream.collect(Collectors.toList());
+     * }</pre>
+     *
+     * <p>The following will classify {@code Person} objects by city:
+     * <pre>{@code
+     *     Map<String, List<Person>> peopleByCity
+     *         = personStream.collect(Collectors.groupingBy(Person::getCity));
+     * }</pre>
+     *
+     * <p>The following will classify {@code Person} objects by state and city,
+     * cascading two {@code Collector}s together:
+     * <pre>{@code
+     *     Map<String, Map<String, List<Person>>> peopleByStateAndCity
+     *         = personStream.collect(Collectors.groupingBy(Person::getState,
+     *                                                      Collectors.groupingBy(Person::getCity)));
+     * }</pre>
+     *
+     * @param <R> the type of the result
+     * @param <A> the intermediate accumulation type of the {@code Collector}
+     * @param collector the {@code Collector} describing the reduction
+     * @return the result of the reduction
+     * @see #collect(Supplier, BiConsumer, BiConsumer)
+     * @see Collectors
+     */
+    <R, A> R collect(Collector<? super T, A, R> collector);
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test20
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 17:02
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test20
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1010; i++)
+        {
+            list.add(i);
+        }
+        Collections.shuffle(list);
+        System.out.println(list);
+        List<Integer> collect = list.stream().collect(Collectors.toList());
+        System.out.println(collect);
+        Set<Integer> collect1 = list.stream().collect(Collectors.toSet());
+        System.out.println(collect1);
+    }
+}
+```
+
+
+
+```sh
+[1009, 1004, 1007, 1001, 1000, 1003, 1002, 1008, 1006, 1005]
+[1009, 1004, 1007, 1001, 1000, 1003, 1002, 1008, 1006, 1005]
+[1008, 1009, 1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007]
+```
+
+
+
+
+
+
+
+### Stream流中的结果到数组中
+
+Stream提供toArray方法来将结果放到一个数组中，返回值类型是Object[]的
+
+```java
+
+    /**
+     * Returns an array containing the elements of this stream.
+     *
+     * <p>This is a <a href="package-summary.html#StreamOps">terminal
+     * operation</a>.
+     *
+     * @return an array containing the elements of this stream
+     */
+    Object[] toArray();
+```
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test21
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 17:06
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test21
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1010; i++)
+        {
+            list.add(i);
+        }
+        Object[] array = list.stream().toArray();
+        System.out.println(array);
+        for (Object o : array)
+        {
+            System.out.print(o + ",");
+        }
+    }
+}
+```
+
+
+
+```sh
+[Ljava.lang.Object;@7ba4f24f
+1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,
+```
+
+
+
+
+
+### 对流中数据进行聚合计算
+
+当我们使用Stream流处理数据后，可以像数据库的聚合函数一样对某个字段进行操作。比如获取最大值，获取最小 值，求总和，平均值，统计数量
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test22
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 17:09
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test22
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1010; i++)
+        {
+            list.add(i);
+        }
+        // 获取最大值
+        Integer integer = list.stream().collect(Collectors.maxBy(new Comparator<Integer>()
+        {
+            @Override
+            public int compare(Integer o1, Integer o2)
+            {
+                return o1 - o2;
+            }
+        })).get();
+        System.out.println(integer);
+
+        // 获取最小值
+        integer = list.stream().collect(Collectors.minBy(new Comparator<Integer>()
+        {
+            @Override
+            public int compare(Integer o1, Integer o2)
+            {
+                return o1 - o2;
+            }
+        })).get();
+        System.out.println(integer);
+
+        // 求总和
+        integer = list.stream().collect(Collectors.summingInt(new ToIntFunction<Integer>()
+        {
+            @Override
+            public int applyAsInt(Integer value)
+            {
+                return value;
+            }
+        }));
+        System.out.println(integer);
+
+        // 平均值
+        Double aDouble = list.stream().collect(Collectors.averagingInt(new ToIntFunction<Integer>()
+        {
+            @Override
+            public int applyAsInt(Integer value)
+            {
+                return value;
+            }
+        }));
+        System.out.println(aDouble);
+
+
+        // 统计数量
+        Long aLong = list.stream().collect(Collectors.counting());
+        System.out.println(aLong);
+    }
+}
+```
+
+
+
+
+
+### 对流中数据进行分组
+
+当我们使用Stream流处理数据后，可以根据某个属性将数据分组
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test24
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/26
+ * Time(创建时间)： 17:26
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test24
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1010; i++)
+        {
+            list.add(i);
+        }
+        Map<String, List<Integer>> collect = list.stream().collect(Collectors.groupingBy(new Function<Integer, String>()
+        {
+            @Override
+            public String apply(Integer integer)
+            {
+                if (integer > 1005)
+                {
+                    return "大于1005";
+                }
+                else
+                {
+                    return "小于等于1005";
+                }
+            }
+        }));
+        System.out.println(collect);
+    }
+}
+```
+
+
+
+```sh
+{小于等于1005=[1000, 1001, 1002, 1003, 1004, 1005], 大于1005=[1006, 1007, 1008, 1009]}
+```
+
+
+
+
+
+### 对流中数据进行多级分组
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test25
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/27
+ * Time(创建时间)： 15:55
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test25
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1030; i++)
+        {
+            list.add(i);
+        }
+        Map<String, Map<String, List<Integer>>> mapMap = list.stream().collect(Collectors.groupingBy(new Function<Integer, String>()
+        {
+            @Override
+            public String apply(Integer integer)
+            {
+                if (integer % 2 == 0)
+                {
+                    return "双数";
+                }
+                else
+                {
+                    return "单数";
+                }
+            }
+        }, Collectors.groupingBy(new Function<Integer, String>()
+        {
+            @Override
+            public String apply(Integer integer)
+            {
+                if (integer > 1010)
+                {
+                    return "大于1010";
+                }
+                else
+                {
+                    return "小于等于1010";
+                }
+            }
+        })));
+        System.out.println(mapMap);
+    }
+}
+```
+
+
+
+```sh
+{单数={大于1010=[1011, 1013, 1015, 1017, 1019, 1021, 1023, 1025, 1027, 1029], 小于等于1010=[1001, 1003, 1005, 1007, 1009]}, 双数={大于1010=[1012, 1014, 1016, 1018, 1020, 1022, 1024, 1026, 1028], 小于等于1010=[1000, 1002, 1004, 1006, 1008, 1010]}}
+```
+
+
+
+
+
+
+
+### 对流中数据进行分区
+
+Collectors.partitioningBy 会根据值是否为true，把集合分割为两个列表，一个true列表，一个false列表
+
+
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test26
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/27
+ * Time(创建时间)： 16:02
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test26
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1030; i++)
+        {
+            list.add(i);
+        }
+        Map<Boolean, List<Integer>> collect = list.stream().collect(Collectors.partitioningBy(integer -> integer % 2 == 0));
+        System.out.println(collect);
+        collect = list.stream().collect(Collectors.partitioningBy(integer -> integer % 2 == 1));
+        System.out.println(collect);
+        collect = list.stream().collect(Collectors.partitioningBy(integer -> integer > 1015));
+        System.out.println(collect);
+    }
+}
+```
+
+
+
+```sh
+{false=[1001, 1003, 1005, 1007, 1009, 1011, 1013, 1015, 1017, 1019, 1021, 1023, 1025, 1027, 1029], true=[1000, 1002, 1004, 1006, 1008, 1010, 1012, 1014, 1016, 1018, 1020, 1022, 1024, 1026, 1028]}
+{false=[1000, 1002, 1004, 1006, 1008, 1010, 1012, 1014, 1016, 1018, 1020, 1022, 1024, 1026, 1028], true=[1001, 1003, 1005, 1007, 1009, 1011, 1013, 1015, 1017, 1019, 1021, 1023, 1025, 1027, 1029]}
+{false=[1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015], true=[1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029]}
+```
+
+
+
+
+
+### 对流中数据进行拼接
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Project name(项目名称)：JDK8_Stream
+ * Package(包名): mao
+ * Class(类名): Test27
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/27
+ * Time(创建时间)： 16:06
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test27
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        for (int i = 1000; i < 1030; i++)
+        {
+            list.add(i);
+        }
+        String collect = list.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",,"));
+        System.out.println(collect);
+         collect = list.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",","[","]"));
+        System.out.println(collect);
+    }
+}
+```
+
+
+
+```sh
+1000,,1001,,1002,,1003,,1004,,1005,,1006,,1007,,1008,,1009,,1010,,1011,,1012,,1013,,1014,,1015,,1016,,1017,,1018,,1019,,1020,,1021,,1022,,1023,,1024,,1025,,1026,,1027,,1028,,1029
+[1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029]
+```
+
+
+
+
+
+
+
+## 并行的Stream流
+
+### 概述
+
+parallelStream其实就是一个并行执行的流。它通过默认的ForkJoinPool，可能提高多线程任务的速度
+
+
+
+获取并行Stream流的两种方式：
+
+* 直接获取并行的流
+* 将串行流转成并行流
+
+
+
+
+
+### 直接获取并行的流
+
