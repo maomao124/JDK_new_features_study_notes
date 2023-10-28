@@ -4829,5 +4829,339 @@ public class Test2
 
 ## 新日期和时间API
 
+### 旧版日期时间API问题
 
+* 设计很差： 在java.util和java.sql的包中都有日期类，java.util.Date同时包含日期和时间，而java.sql.Date仅包含日期。此外用于格式化和解析的类在java.text包中定义
+* 非线程安全：java.util.Date 是非线程安全的，所有的日期类都是可变的，这是Java日期类最大的问题之一
+* 时区处理麻烦：日期类并不提供国际化，没有时区支持，因此Java引入了java.util.Calendar和 java.util.TimeZone类，但他们同样存在上述所有的问题
+
+
+
+
+
+### 概述
+
+JDK8中增加了一套全新的日期时间API，这套API设计合理，是线程安全的。新的日期及时间API位于java.time包中
+
+
+
+![image-20231027171550880](img/JDK新特性学习笔记/image-20231027171550880.png)
+
+
+
+* LocalDate ：表示日期，包含年月日，格式为 2019-10-16
+*  LocalTime ：表示时间，包含时分秒，格式为 16:38:54.158549300
+*  LocalDateTime ：表示日期时间，包含年月日，时分秒
+*  DateTimeFormatter ：日期时间格式化类
+* Instant：时间戳，表示一个特定的时间瞬间
+* Duration：用于计算2个时间(LocalTime，时分秒)的距离
+* Period：用于计算2个日期(LocalDate，年月日)的距离
+* ZonedDateTime ：包含时区的时间
+
+
+
+ Java中使用的历法是ISO 8601日历系统，它是世界民用历法，也就是我们所说的公历。平年有365天，闰年是366 天。此外Java 8还提供了4套其他历法：
+
+* ThaiBuddhistDate ：泰国佛教历
+* MinguoDate ：中华民国历
+* JapaneseDate：日本历
+*  HijrahDate：伊斯兰历
+
+
+
+
+
+```java
+package mao;
+
+import java.time.LocalDate;
+import java.time.chrono.HijrahDate;
+import java.time.chrono.JapaneseDate;
+import java.time.chrono.MinguoDate;
+import java.time.chrono.ThaiBuddhistDate;
+
+/**
+ * Project name(项目名称)：JDK8_data_time_API
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/27
+ * Time(创建时间)： 17:14
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        MinguoDate now = MinguoDate.now();
+        System.out.println(now);
+        System.out.println(JapaneseDate.now());
+        LocalDate localDate = LocalDate.now();
+        System.out.println(localDate);
+        HijrahDate hijrahDate = HijrahDate.now();
+        System.out.println(hijrahDate);
+        ThaiBuddhistDate thaiBuddhistDate = ThaiBuddhistDate.now();
+        System.out.println(thaiBuddhistDate);
+    }
+}
+```
+
+
+
+```sh
+Minguo ROC 112-10-27
+Japanese Reiwa 5-10-27
+2023-10-27
+Hijrah-umalqura AH 1445-04-12
+ThaiBuddhist BE 2566-10-27
+```
+
+
+
+
+
+### LocalDate
+
+```java
+package mao;
+
+import java.time.LocalDate;
+
+/**
+ * Project name(项目名称)：JDK8_data_time_API
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/27
+ * Time(创建时间)： 17:23
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        //创建指定日期
+        LocalDate fj = LocalDate.of(1985, 9, 23);
+        System.out.println("fj = " + fj); // 1985-09-23
+        //得到当前日期
+        LocalDate nowDate = LocalDate.now();
+        System.out.println("nowDate = " + nowDate);
+        //获取日期信息
+        System.out.println("年: " + nowDate.getYear());
+        System.out.println("月: " + nowDate.getMonthValue());
+        System.out.println("日: " + nowDate.getDayOfMonth());
+        System.out.println("星期: " + nowDate.getDayOfWeek());
+    }
+}
+```
+
+
+
+```sh
+fj = 1985-09-23
+nowDate = 2023-10-28
+年: 2023
+月: 10
+日: 28
+星期: SATURDAY
+```
+
+
+
+
+
+### LocalTime
+
+```java
+package mao;
+
+import java.time.LocalTime;
+
+/**
+ * Project name(项目名称)：JDK8_data_time_API
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/28
+ * Time(创建时间)： 17:56
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args)
+    {
+        // 得到指定的时间
+        LocalTime time = LocalTime.of(12, 15, 28, 129_900_000);
+        System.out.println("time = " + time);
+        // 得到当前时间
+        LocalTime nowTime = LocalTime.now();
+        System.out.println("nowTime = " + nowTime);
+        // 获取时间信息
+        System.out.println("小时: " + nowTime.getHour());
+        System.out.println("分钟: " + nowTime.getMinute());
+        System.out.println("秒: " + nowTime.getSecond());
+        System.out.println("纳秒: " + nowTime.getNano());
+    }
+}
+```
+
+
+
+```sh
+time = 12:15:28.129900
+nowTime = 17:58:30.571
+小时: 17
+分钟: 58
+秒: 30
+纳秒: 571000000
+```
+
+
+
+
+
+
+
+### LocalDateTime
+
+```java
+package mao;
+
+import java.time.LocalDateTime;
+
+/**
+ * Project name(项目名称)：JDK8_data_time_API
+ * Package(包名): mao
+ * Class(类名): Test4
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/28
+ * Time(创建时间)： 17:59
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test4
+{
+    public static void main(String[] args)
+    {
+        LocalDateTime fj = LocalDateTime.of(1985, 9, 23, 9, 10, 20);
+        System.out.println("fj = " + fj);
+        // 得到当前日期时间
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println("now = " + now);
+        System.out.println(now.getYear());
+        System.out.println(now.getMonthValue());
+        System.out.println(now.getDayOfMonth());
+        System.out.println(now.getHour());
+        System.out.println(now.getMinute());
+        System.out.println(now.getSecond());
+        System.out.println(now.getNano());
+    }
+}
+```
+
+
+
+```sh
+fj = 1985-09-23T09:10:20
+now = 2023-10-28T17:59:41.449
+2023
+10
+28
+17
+59
+41
+449000000
+```
+
+
+
+
+
+### 日期时间的修改
+
+对日期时间的修改，对已存在的LocalDate对象，创建它的修改版，最简单的方式是使用withAttribute方法
+
+withAttribute方法会创建对象的一个副本，并按照需要修改它的属性。以下所有的方法都返回了一个修改属性的对 象，他们不会影响原来的对象
+
+```java
+package mao;
+
+import java.time.LocalDateTime;
+
+/**
+ * Project name(项目名称)：JDK8_data_time_API
+ * Package(包名): mao
+ * Class(类名): Test5
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/28
+ * Time(创建时间)： 18:05
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test5
+{
+    public static void main(String[] args)
+    {
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println("now = " + now);
+        LocalDateTime localDateTime = now.withYear(2021);
+        System.out.println(localDateTime);
+        System.out.println(now == localDateTime);
+        System.out.println("修改月份: " + now.withMonth(8));
+        System.out.println("修改小时: " + now.withHour(2));
+        System.out.println("修改分钟: " + now.withMinute(13));
+
+        LocalDateTime localDateTime1 = now.plusYears(3);
+        System.out.println(localDateTime1);
+        System.out.println(localDateTime1 == now);
+        System.out.println("20月后: " + now.plusMonths(20));
+        System.out.println("20年前: " + now.minusYears(20));
+        System.out.println("5月前: " + now.minusMonths(5));
+        System.out.println("100天前: " + now.minusDays(100));
+        System.out.println("3周前: " + now.minusWeeks(3));
+    }
+}
+```
+
+
+
+```sh
+now = 2023-10-28T18:10:08.748
+2021-10-28T18:10:08.748
+false
+修改月份: 2023-08-28T18:10:08.748
+修改小时: 2023-10-28T02:10:08.748
+修改分钟: 2023-10-28T18:13:08.748
+2026-10-28T18:10:08.748
+false
+20月后: 2025-06-28T18:10:08.748
+20年前: 2003-10-28T18:10:08.748
+5月前: 2023-05-28T18:10:08.748
+100天前: 2023-07-20T18:10:08.748
+3周前: 2023-10-07T18:10:08.748
+```
+
+
+
+
+
+### 日期时间的比较
 
