@@ -6346,9 +6346,1078 @@ public class Test2
 
 # JDK9
 
+## 模块化系统
+
+### 概述
+
+jdk9之前没有解决的问题：
+
+* **java运行环境代码臃肿、效率低**。Java9之前，每一个runtime自带开箱即用的所有编译好的平台类，这些类被一起打包到一个JRE文件叫做rt.jar。你只需将你的应用的类放到classpath中，这样runtime就可以找到，而其它的平台类它就简单粗暴的从rt.jar文件中去找。尽管你的应用只用到了这个庞大的rt.jar的一部分，这对JVM管理来说不仅增加了非必要类的体积，还增加了性能负载。 Java9模块化可以按需自定义runtime!这也就是jdk9文件夹下没有了jre目录的原因
+* **无法隐藏内部API和类型**。很难真正地对代码进行封装,系统对于不同部分的代码无法分离。 在早期我们实现封装都是需要依赖一下权限修饰符, 而权限修饰符只能修饰类、成员变量、成员方法。 权限修饰符我们没法对包进行隐藏，JDK9我们通过隐藏包从而隐藏包中里面的所有类
 
 
 
 
 
+模块化的目标：
+
+* 减少内存的开销，提高效率
+* 强封装： 每一个模块都声明了哪些包是公开的哪些包是内部的，java编译和运行时就可以实施这些规则来确保外部模块无法使用内部类型
+
+
+
+
+
+
+
+### 使用
+
+创建两个包：
+
+![image-20231031092350667](img/JDK新特性学习笔记/image-20231031092350667.png)
+
+
+
+在utils新建一个工具类
+
+```java
+package mao.utils;
+
+import java.util.Comparator;
+import java.util.List;
+
+/**
+ * Project name(项目名称)：JDK9_modular
+ * Package(包名): mao.utils
+ * Class(类名): MaxUtils
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 9:24
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class MaxUtils
+{
+    /**
+     * 得到最大值
+     *
+     * @param list 列表
+     * @return {@link Integer} 最大值
+     */
+    public Integer getMax(List<Integer> list)
+    {
+        return list.stream().max(Comparator.comparingInt(o -> o)).get();
+    }
+}
+```
+
+
+
+
+
+在modle包中创建一个Student类
+
+```java
+package mao.model;
+
+/**
+ * Project name(项目名称)：JDK9_modular
+ * Package(包名): mao.model
+ * Class(类名): Student
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 9:31
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Student
+{
+    private Long id;
+    private String name;
+    private Integer age;
+
+    public Long getId()
+    {
+        return id;
+    }
+
+    public Student setId(Long id)
+    {
+        this.id = id;
+        return this;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public Student setName(String name)
+    {
+        this.name = name;
+        return this;
+    }
+
+    public Integer getAge()
+    {
+        return age;
+    }
+
+    public Student setAge(Integer age)
+    {
+        this.age = age;
+        return this;
+    }
+}
+```
+
+
+
+
+
+java目录下新建一个输出模块信息，只是输出utils包，model包对外隐藏
+
+![image-20231031093703048](img/JDK新特性学习笔记/image-20231031093703048.png)
+
+
+
+
+
+
+
+```java
+module m {
+    exports mao.utils;
+}
+```
+
+
+
+
+
+创建一个新模块
+
+![image-20231031093952166](img/JDK新特性学习笔记/image-20231031093952166.png)
+
+
+
+创建一个M1
+
+![image-20231031094122779](img/JDK新特性学习笔记/image-20231031094122779.png)
+
+
+
+```java
+module m1 {
+    requires m;
+}
+```
+
+
+
+添加依赖
+
+```xml
+    <dependencies>
+
+        <dependency>
+            <groupId>mao</groupId>
+            <artifactId>JDK9_modular</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+
+    </dependencies>
+```
+
+
+
+
+
+创建测试
+
+```java
+package mao;
+
+import mao.utils.MaxUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Project name(项目名称)：JDK9_modular
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 9:43
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = new ArrayList<>();
+        list.add(2);
+        list.add(9);
+        list.add(4);
+        list.add(1);
+        Integer integer = new MaxUtils().getMax(list);
+        System.out.println(integer);
+        //Student student=new Student();
+    }
+}
+```
+
+
+
+不能使用Student类
+
+![image-20231031094835711](img/JDK新特性学习笔记/image-20231031094835711.png)
+
+
+
+![image-20231031094847134](img/JDK新特性学习笔记/image-20231031094847134.png)
+
+
+
+![image-20231031094908250](img/JDK新特性学习笔记/image-20231031094908250.png)
+
+
+
+
+
+
+
+
+
+## jshell工具
+
+### 概述
+
+java的编程模式是：**编辑，保存，编译，运行和调试**。 
+
+有时候我们需要快速看到某个语句的结果的时候，还需要写上public static void main(String[] args)这些无谓的语句，减低我们的开发效率。 JDK9引 入了交互式编程，通过jshell工具即可实现，交互式编程就是指我们不需要编写类我们即可直接声明变 量，方法，执行语句，不需要编译即可马上看到效果。 
+
+交互式编程的作用：**即时反馈**
+
+
+
+
+
+### 使用
+
+打开jshell工具
+
+```sh
+jshell
+```
+
+
+
+```sh
+PS C:\Users\mao> jshell
+|  欢迎使用 JShell -- 版本 17.0.8.1
+|  要大致了解该版本, 请键入: /help intro
+
+jshell>
+```
+
+
+
+帮助信息
+
+```sh
+jshell> /help intro
+|
+|                                   intro
+|                                   =====
+|
+|  使用 jshell 工具可以执行 Java 代码，从而立即获取结果。
+|  您可以输入 Java 定义（变量、方法、类等等），例如：int x = 8
+|  或 Java 表达式，例如：x + x
+|  或 Java 语句或导入。
+|  这些小块的 Java 代码称为“片段”。
+|
+|  这些 jshell 工具命令还可以让您了解和
+|  控制您正在执行的操作，例如：/list
+|
+|  有关命令的列表，请执行：/help
+
+jshell> /help
+|  键入 Java 语言表达式, 语句或声明。
+|  或者键入以下命令之一:
+|  /list [<名称或 id>|-all|-start]
+|       列出您键入的源
+|  /edit <名称或 id>
+|       编辑源条目
+|  /drop <名称或 id>
+|       删除源条目
+|  /save [-all|-history|-start] <文件>
+|       将片段源保存到文件
+|  /open <file>
+|       打开文件作为源输入
+|  /vars [<名称或 id>|-all|-start]
+|       列出已声明变量及其值
+|  /methods [<名称或 id>|-all|-start]
+|       列出已声明方法及其签名
+|  /types [<名称或 id>|-all|-start]
+|       列出类型声明
+|  /imports
+|       列出导入的项
+|  /exit [<integer-expression-snippet>]
+|       退出 jshell 工具
+|  /env [-class-path <路径>] [-module-path <路径>] [-add-modules <模块>] ...
+|       查看或更改评估上下文
+|  /reset [-class-path <路径>] [-module-path <路径>] [-add-modules <模块>]...
+|       重置 jshell 工具
+|  /reload [-restore] [-quiet] [-class-path <路径>] [-module-path <路径>]...
+|       重置和重放相关历史记录 -- 当前历史记录或上一个历史记录 (-restore)
+|  /history [-all]
+|       您键入的内容的历史记录
+|  /help [<command>|<subject>]
+|       获取有关使用 jshell 工具的信息
+|  /set editor|start|feedback|mode|prompt|truncation|format ...
+|       设置配置信息
+|  /? [<command>|<subject>]
+|       获取有关使用 jshell 工具的信息
+|  /!
+|       重新运行上一个片段 -- 请参阅 /help rerun
+|  /<id>
+|       按 ID 或 ID 范围重新运行片段 -- 参见 /help rerun
+|  /-<n>
+|       重新运行以前的第 n 个片段 -- 请参阅 /help rerun
+|
+|  有关详细信息, 请键入 '/help', 后跟
+|  命令或主题的名称。
+|  例如 '/help /list' 或 '/help intro'。主题:
+|
+|  intro
+|       jshell 工具的简介
+|  keys
+|       类似 readline 的输入编辑的说明
+|  id
+|       片段 ID 以及如何使用它们的说明
+|  shortcuts
+|       片段和命令输入提示, 信息访问以及
+|       自动代码生成的按键说明
+|  context
+|       /env /reload 和 /reset 的评估上下文选项的说明
+|  rerun
+|       重新评估以前输入片段的方法的说明
+
+jshell>
+```
+
+
+
+
+
+直接声明变量、方法
+
+```sh
+jshell> int a=100;
+a ==> 100
+
+jshell> int b=200;
+b ==> 200
+
+jshell> String str="hello";
+str ==> "hello"
+
+jshell>
+```
+
+
+
+```sh
+jshell> public void test(){System.out.println("abc");}
+|  已创建 方法 test()
+
+jshell> test();
+abc
+
+jshell>
+```
+
+
+
+查看当前所有的代码
+
+```sh
+jshell> /list
+
+   1 : int a=100;
+   2 : int b=200;
+   3 : String str="hello";
+   4 : public void test(){System.out.println("abc");}
+   5 : test();
+
+jshell>
+```
+
+
+
+查看所有的方法
+
+```sh
+jshell> /methods
+|    void test()
+
+jshell>
+```
+
+
+
+
+
+打开编辑器
+
+![image-20231031100111711](img/JDK新特性学习笔记/image-20231031100111711.png)
+
+
+
+执行外部的代码
+
+```sh
+jshell> /open f:./hello.java
+|  找不到 '/open' 的文件 'f:./hello.java'。
+
+jshell>
+```
+
+
+
+查看默认导入的包
+
+```sh
+jshell> /imports
+|    import java.io.*
+|    import java.math.*
+|    import java.net.*
+|    import java.nio.file.*
+|    import java.util.*
+|    import java.util.concurrent.*
+|    import java.util.function.*
+|    import java.util.prefs.*
+|    import java.util.regex.*
+|    import java.util.stream.*
+
+jshell>
+```
+
+
+
+
+
+退出jshell工具
+
+```sh
+jshell> /exit
+|  再见
+PS C:\Users\mao>
+```
+
+
+
+
+
+
+
+## 多版本兼用jar
+
+### 概述
+
+多版本JAR（MR JAR）可能包含同一类的多个变体,每个变体都针对特定的Java版本。 在运行时，类的正确变体将被自动加载，这取决于所使用的Java版本。这允许库作者在早期利用新的Java版本，同时保持与旧版本的兼容性
+
+
+
+### 应用场景
+
+比如某个架构师开发了一个工具类MyUtils,该工具类里面使用了jdk9的新特性，这时候该工具在推广的时候会遇到很大的阻力，因为很多用户还没有升级jdk版本，JDK9推出了多版本兼用jar的特性就允许该架构师编写一个同类名的工具MyUtils,并在该工具类中不使用jdk9的新特性，然后两个同类名的类一起打包成为一个jar，提供给用户去使用,这时候即可根据用户当前使用的jdk版本而选择不同的工具类了
+
+
+
+
+
+### 使用
+
+创建相同名称的类
+
+![image-20231031111113673](img/JDK新特性学习笔记/image-20231031111113673.png)
+
+
+
+```java
+package mao.jdk8;
+
+
+public class Test
+{
+    public static void main(String[] args)
+    {
+        System.out.println("jdk8");
+    }
+}
+```
+
+
+
+```java
+package mao.jdk9;
+
+
+public class Test
+{
+    public static void main(String[] args)
+    {
+        System.out.println("jdk9");
+    }
+}
+```
+
+
+
+```java
+package mao.jdk17;
+
+
+public class Test
+{
+    public static void main(String[] args)
+    {
+        System.out.println("jdk17");
+    }
+}
+```
+
+
+
+
+
+在src目录下编译成class文件：
+
+```sh
+javac -d out8 --release 8 main/java/mao/jdk8/Test.java
+javac -d out9 --release 9 main/java/mao/jdk9/Test.java
+javac -d out17 --release 17 main/java/mao/jdk17/Test.java
+```
+
+
+
+
+
+在src目录下把两个版本的class文件打成jar包
+
+```sh
+jar --create --file util.jar -C out9 ./ --release 9 -C out9 .
+```
+
+
+
+
+
+
+
+
+
+## 接口方法私有化
+
+### 概述
+
+当我们在一个接口里写多个默认方法或者静态方法的时候，可能会遇到程序重复的问题。我们可以把这些重复的程序提取出来，创建一个新的方法，用private进行修饰，这样就创造了一个只有接口可以调用的私有方法
+
+
+
+
+
+### 使用
+
+以前写法：
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK9_interface_method_privatization
+ * Package(包名): mao
+ * Interface(接口名): A
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 12:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public interface A
+{
+    default void methodA()
+    {
+        System.out.println("methodA...");
+        System.out.println("A....");
+        System.out.println("B....");
+        System.out.println("C....");
+    }
+
+    default void methodB()
+    {
+        System.out.println("methodB...");
+        System.out.println("A....");
+        System.out.println("B....");
+        System.out.println("C....");
+    }
+}
+```
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK9_interface_method_privatization
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 12:38
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1 implements A
+{
+    public static void main(String[] args)
+    {
+        Test1 test1=new Test1();
+        test1.methodA();
+        test1.methodB();
+    }
+}
+```
+
+
+
+```sh
+methodA...
+A....
+B....
+C....
+methodB...
+A....
+B....
+C....
+```
+
+
+
+
+
+现在的写法
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK9_interface_method_privatization
+ * Package(包名): mao
+ * Interface(接口名): B
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 12:33
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public interface B
+{
+    default void methodA()
+    {
+        System.out.println("methodA...");
+        commons();
+    }
+
+    default void methodB()
+    {
+        System.out.println("methodB...");
+        commons();
+    }
+
+    /**
+     * 定一个私有的方法，把重复部分的代码抽离出来。然后在methodA与methodB方法内部去调用
+     * 私有方法只能在本类中调用，这里包括接口的实现类也不能调用
+     */
+    private void commons()
+    {
+        System.out.println("A....");
+        System.out.println("B....");
+        System.out.println("C....");
+    }
+}
+```
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK9_interface_method_privatization
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 12:40
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2 implements B
+{
+    public static void main(String[] args)
+    {
+        Test2 test2=new Test2();
+        test2.methodA();
+        test2.methodB();
+        //test2.commons();
+    }
+}
+```
+
+
+
+```sh
+methodA...
+A....
+B....
+C....
+methodB...
+A....
+B....
+C....
+```
+
+
+
+调用私有方法：
+
+![image-20231031124254407](img/JDK新特性学习笔记/image-20231031124254407.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 释放资源代码优化
+
+### 概述
+
+JDK8以前释放资源代码非常累赘， 如果释放资源较多的时候，很容易就会出现释放资源代码超过了正常业务的代码. 对此随着jdk版本的不断更新迭代，也对释放资源代码做了很大幅度的优化
+
+JDK8开始已经不需要我们再手动关闭资源，只需要把要关闭资源的代码放入try语句中即可，但是要求初始化资源的语句必须位于try语句中
+
+JDK9不要求初始化资源的语句必须位于try语句中
+
+
+
+
+
+### 使用
+
+jdk8以前：
+
+```java
+package mao;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Project name(项目名称)：JDK9_release_resources_optimization
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 16:14
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        FileOutputStream fileOutputStream = null;
+        OutputStreamWriter outputStreamWriter = null;
+        BufferedWriter bufferedWriter = null;
+        try
+        {
+            fileOutputStream = new FileOutputStream("a.txt");
+            outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
+            bufferedWriter = new BufferedWriter(outputStreamWriter);
+            bufferedWriter.write("hello");
+            bufferedWriter.write(" world");
+            bufferedWriter.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        finally
+        {
+            try
+            {
+                if (bufferedWriter != null)
+                {
+                    bufferedWriter.close();
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+            try
+            {
+                if (outputStreamWriter != null)
+                {
+                    outputStreamWriter.close();
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+            try
+            {
+                if (fileOutputStream != null)
+                {
+                    fileOutputStream.close();
+                }
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+    }
+}
+```
+
+
+
+
+
+jdk8：
+
+```java
+package mao;
+
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Project name(项目名称)：JDK9_release_resources_optimization
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 16:15
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        try (FileOutputStream fileOutputStream = new FileOutputStream("b.txt");
+             OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
+             BufferedWriter bufferedWriter = new BufferedWriter(outputStreamWriter))
+        {
+            bufferedWriter.write("hello");
+            bufferedWriter.write(" world");
+            bufferedWriter.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+
+
+jdk9：
+
+```java
+package mao;
+
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Project name(项目名称)：JDK9_release_resources_optimization
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/10/31
+ * Time(创建时间)： 16:15
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args) throws FileNotFoundException
+    {
+        FileOutputStream fileOutputStream = new FileOutputStream("c.txt");
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8);
+        BufferedWriter bufferedWriter = new BufferedWriter(outputStreamWriter);
+        try (fileOutputStream; outputStreamWriter; bufferedWriter)
+        {
+            bufferedWriter.write("hello");
+            bufferedWriter.write(" world");
+            bufferedWriter.flush();
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+## 标识符优化
+
+jdk9之前：
+
+```java
+String _ = "hello";
+System.out.println(_);
+```
+
+
+
+以上代码不会报错，允许_作为标识符
+
+
+
+JDK9开始：
+
+```java
+String _ = "hello";
+System.out.println(_);
+```
+
+
+
+以上代码报错，jdk9开始不允许_作为标识符
+
+
+
+
+
+
+
+## String底层结构的变化
+
+string类的当前实现将字符存储在char数组中，每个字符使用两个字节（16位）。从许多不同的应用程 序收集的数据表明，字符串是堆使用的主要组成部分，而且，大多数字符串对象只包含拉丁-1字符。这 样的字符只需要一个字节的存储空间，因此这样的字符串对象的内部字符数组中的一半空间将被闲置
+
+
+
+
+
+jdk8：
+
+![image-20231031162658687](img/JDK新特性学习笔记/image-20231031162658687.png)
+
+
+
+
+
+jdk9：
+
+![image-20231031162604950](img/JDK新特性学习笔记/image-20231031162604950.png)
+
+
+
+
+
+
+
+## StringBuffer与StringBuilder底层变化
+
+由于String类底层已经发生变化，所以StringBuilder与StringBuffer底层也相应的发生了改变
+
+
+
+jdk8：
+
+![image-20231031162813298](img/JDK新特性学习笔记/image-20231031162813298.png)
+
+
+
+jdk9：
+
+![image-20231031162859312](img/JDK新特性学习笔记/image-20231031162859312.png)
+
+
+
+
+
+
+
+
+
+## 快速创建只读集合
 
