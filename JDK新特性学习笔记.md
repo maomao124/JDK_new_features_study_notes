@@ -8154,7 +8154,9 @@ public class Test4
 
 ## 响应式流
 
+在 Java 9 中的 `java.util.concurrent.Flow` 类中新增了反应式流规范的核心接口 。
 
+`Flow` 中包含了 `Flow.Publisher`、`Flow.Subscriber`、`Flow.Subscription` 和 `Flow.Processor` 等 4 个核心接口。Java 9 还提供了`SubmissionPublisher` 作为`Flow.Publisher` 的一个实现。
 
 
 
@@ -8164,3 +8166,314 @@ public class Test4
 
 ## 变量句柄
 
+变量句柄是一个变量或一组变量的引用，包括静态域，非静态域，数组元素和堆外数据结构中的组成部分等。
+
+变量句柄的含义类似于已有的方法句柄 `MethodHandle` ，由 Java 类 `java.lang.invoke.VarHandle` 来表示，可以使用类 `java.lang.invoke.MethodHandles.Lookup` 中的静态工厂方法来创建 `VarHandle` 对象。
+
+`VarHandle` 的出现替代了 `java.util.concurrent.atomic` 和 `sun.misc.Unsafe` 的部分操作。并且提供了一系列标准的内存屏障操作，用于更加细粒度的控制内存排序。在安全性、可用性、性能上都要优于现有的 API。
+
+
+
+
+
+
+
+## 支持多分辨率图片
+
+在 java.awt.image 包下新增了支持多分辨率图片的API，用于支持多分辨率的图片
+
+
+
+
+
+
+
+## java的动态编译器
+
+动态编译器出现的目的就是为了提高编译的效率。 sjavac(smarter java compilation)最早在openjdk8中提供了初级版本，其初衷是用来加速jdk自己的编译。在9中进行过一版优化，使其更加稳定可靠，能够用来编译任意的大型java项目。
+
+sjavac在javac的基础上实现了：
+
+* 增量编译 – 只重新编译必要的内容
+* 并行编译 – 在编译期间使用多个核心
+
+
+
+
+
+
+
+## 其它
+
+- **平台日志 API 改进** ： Java 9 允许为 JDK 和应用配置同样的日志实现。新增了 `System.LoggerFinder` 用来管理 JDK 使用的日志记录器实现。JVM 在运行时只有一个系统范围的 `LoggerFinder` 实例。我们可以通过添加自己的 `System.LoggerFinder` 实现来让 JDK 和应用使用 SLF4J 等其他日志记录框架。
+- **`CompletableFuture`类增强** ：新增了几个新的方法（`completeAsync` ，`orTimeout` 等）。
+- **Nashorn 引擎的增强** ：Nashorn 从 Java8 开始引入的 JavaScript 引擎，Java9 对 Nashorn 做了些增强，实现了一些 ES6 的新特性（Java 11 中已经被弃用）。
+- **I/O 流的新特性** ：增加了新的方法来读取和复制 `InputStream` 中包含的数据。
+- **改进应用的安全性能** ：Java 9 新增了 4 个 SHA- 3 哈希算法，SHA3-224、SHA3-256、SHA3-384 和 SHA3-512。
+- **改进方法句柄（Method Handle）** ：方法句柄从 Java7 开始引入，Java9 在类`java.lang.invoke.MethodHandles` 中新增了更多的静态方法来创建不同类型的方法句柄。
+
+
+
+
+
+
+
+
+
+
+
+# JDK10
+
+## 局部变量类型推断
+
+### 概述
+
+很多人抱怨Java是一种强类型，需要引入大量的样板代码。很明显类型声明往往被认为是不必要的。JDK10之前的Java代码中，声明一个变量是非常繁琐的
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：jdk10_local_variable_type_inference
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/1
+ * Time(创建时间)： 18:50
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        String str = "abc";
+        long l = 10L;
+        boolean b = true;
+        ArrayList<String> list = new ArrayList();
+        Stream<String> stream = list.stream();
+    }
+
+}
+```
+
+
+
+许多流行的编程语言都已经支持某种形式的局部变量类型推断，如JS(var)
+
+
+
+**JDK10 可以使用 var 进行局部变量类型推断**
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.stream.Stream;
+
+/**
+ * Project name(项目名称)：jdk10_local_variable_type_inference
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/1
+ * Time(创建时间)： 18:54
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        var str = "abc";
+        var l = 10L;
+        var b = true;
+        var list = new ArrayList();
+        var stream = list.stream();
+        System.out.println(str);
+        System.out.println(l);
+        System.out.println(b);
+        System.out.println(list);
+        System.out.println(stream);
+    }
+}
+```
+
+
+
+
+
+### 局限性
+
+不能使用的场景：
+
+* 成员变量
+* 方法参数
+* 方法返回类型
+
+
+
+
+
+### 注意事项
+
+* var 并不是一个关键字，可以作为标识符，这意味着可以将一个变量、方法、包名写成var 。不过一般情况下不会有人这么写的，因为这本身就违反了普遍的命名规范
+* var声明变量的时候必须赋值、不能用于声明多个变量的情况
+
+
+
+
+
+
+
+## JDK的多个代码仓库合并到一个储存库中
+
+多年以来，JDK的完整代码库已分解为许多的仓库中。在 JDK9 中，JDK的源码被分成有8个仓库： root、corba、 hotspot、jaxp、jaxws、jdk、langtools 和 nashorn 。JDK的源码分成多个仓库这种情况在支持各种所需的源代码管理操作方面做得很差。特别是，不可能在相互依赖的变更集的存储库之间执行原子提交。例如，如果今天用于单个错 误修复或RFE的代码跨越了jdk和hotspot仓库，则无法在托管这两个不同仓库的目录林中原子地对两个仓库进行更 改。跨越多个存储库的更改是很常见的。
+
+
+
+在 JDK10 中这些将被合并为一个，使得跨相互依赖的变更集的存储库运行 atomic commit （原子提交）成为可能
+
+
+
+
+
+
+
+## 垃圾回收器接口
+
+这不是让开发者用来控制垃圾回收的接口，而是方便JDK的开发人员在JVM 源代码中快速的集成和移除垃圾回收器
+
+当前，垃圾回收器的代码分散，不方便新增新的垃圾回收器也不利于移除现有垃圾回收器
+
+通过引入一个干净的垃圾回收器（GC）接口来改善不同垃圾回收器的源代码隔离
+
+
+
+
+
+## 引入并行Full GC
+
+G1是设计来作为一种低延时的垃圾回收器。G1收集器还可以进行非常精确地对停顿进行控制。从JDK7开始启用G1垃圾回收器，在JDK9中G1成为默认垃圾回收策略。截止到ava 9，G1的Full GC采用的是单线程算法。也就是说G1在发生Full GC时会严重影响性能
+
+JDK10又对G1进行了提升，G1 引入并行 Full GC算法，在发生Full GC时可以使用多个线程进行并行回收。能为用户提供更好的体验
+
+
+
+
+
+## 应用程序类数据共享
+
+JDK 5中引入的类数据共享，将一组类预处理为共享的存档文件，然后可以在运行时对其进行内存映射以减少启动时间。当多个JVM共享同一个存档文件时，它还可以减少动态内存占用。
+
+JDK 5仅允许引导类加载器加载归档的类。JDK10对应用程序类数据共享进行了扩展，允许“应用程序类加载器”，内置平台类加载器和自定义类加载器加载已归档的类
+
+目的：
+
+* 通过在不同的Java进程之间共享通用的类元数据来减少占用空间
+* 缩短程序启动时间
+
+
+
+
+
+## 线程本地握手
+
+它是一项JVM性能增强功能，开发人员无法直接使用
+
+Safepoint是Hotspot JVM中一种让应用程序所有线程停止的机制。为了要做一些非常之安全的事情，需要让所有线程都停下来它才好做。比如菜市场，人来人往，有人忽然要清点人数，这时候，最好就是大家都原地不动，这样也好统计。Safepoint起到的就是这样一个作用。
+
+
+
+JVM会设置一个全局的状态值。应用线程去观察这个值，一旦发现JVM把此值设置为了“大家都停下来”。此时每个应用线程就会得到这个通知，然后各自选择一个point（点）停了下来。这个点就叫Safepoint。待所有的应用线程都停下来了。JVM就开始做一些安全级别非常高的事情了
+
+
+
+比如：
+
+* 垃圾清理暂停
+* 类的热更新
+* 偏向锁的取消
+* 各种debug操作
+
+
+
+然而，让所有线程都到就近的safepoint停下来本是需要较长的时间。而且让所有线程都停下来显得有些粗暴
+
+**为此Java10就引入了一种可以不用stop all threads的方式，就是Thread Local Handshake（线程本地握手）**
+
+
+
+线程本地握手是在 JVM 内部相当低级别的更改，修改安全点机制，允许在不运行全局虚拟机安全点的情况下实现线程回调，使得部分回调操作只需要停掉单个线程，而不是停止所有线程
+
+
+
+
+
+
+
+## 在备用存储装置上进行堆内存分配
+
+* 在多JVM部署中，某些JVM（例如守护程序，服务等）的优先级低于其他JVM。与DRAM相比，NV-DIMM具有更 高的访问延迟。低优先级进程可以将NV-DIMM内存用于堆，从而允许高优先级进程使用更多的DRAM。
+* 大数据和内存数据库等应用程序对内存的需求不断增长。这样的应用程序可以将NV-DIMM用于堆，因为与 DRAM相比，NV-DIMM可能具有更大的容量，且成本更低
+
+
+
+NVDIMM-非易失性双列直插式内存模块（英语：non-volatile dual in-line memory module，缩写NVDIMM）特 点：价格便宜，速度比DRAM慢，断电能保留数据
+
+该JEP的目标是无需更改现有的应用程序代码可以代替DRAM用于对象堆。所有其他内存结构（例如代码堆，元空 间，线程堆栈等）将继续驻留在DRAM中
+
+
+
+
+
+
+
+## 实验性JIT编译器
+
+Java编译器指的是JDK自带的javac指令。这一指令可将Java源程序编译成.class字节码文件(bytecode)。字节码无法直 接运行，但可以被不同平台JVM中的 interpreter(解释器) 解释执行。由于一个Java指令可能被转译成十几或几十个对 等的微处理器指令，这种模式执行的速度相当缓慢
+
+由于interpreter效率低下，JVM中又增加JIT compiler（即时编译器，just in time）会在运行时有选择性地将运行次 数较多的方法编译成二进制代码，直接运行在底层硬件上。花费少许的编译时间来节省稍后相当长的执行时间，JIT这种设计的确增加不少效率，但是它并未达到最顶尖的效能，因为某些极少执行到的Java指令在JIT编译时所额外花费的时间可能比interpreter解释器执行时的时间还长，针对这些指令而言，整体花费的时间并没有减少
+
+
+
+Graal是基于Java的JIT编译器，这项 JEP 将 Graal 编译器研究项目引入到 JDK 中。为了让 JVM 性能与当前 C++ 所写版本匹敌（或有幸超越）提供基础
+
+
+
+
+
+
+
+## 删除javah工具
+
+javah 用于生成C语言的头文件
+
+从JDK8开始，javah的功能已经集成到了javac中。去掉javah工具
+
+
+
+命令：
+
+```sh
+javac -h . 文件名.java
+```
+
+
+
+
+
+## 额外的Unicode语言标签扩展
