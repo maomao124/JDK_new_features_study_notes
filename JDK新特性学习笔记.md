@@ -8477,3 +8477,1048 @@ javac -h . 文件名.java
 
 
 ## 额外的Unicode语言标签扩展
+
+之前对Unicode语言环境扩展仅限于日历和数字。该JEP在相关JDK类中实现最新规范中指定的更多扩展
+
+对以下附加扩展的支持：
+
+* cu （货币类型）
+* fw （一周的第一天）
+* rg （区域覆盖）
+* tz （时区）
+
+
+
+
+
+
+
+## 集合新方法copyOf
+
+### 概述
+
+JDK10 给 java.util 包下的List、Set、Map新增加了一个静态方法 copyOf 。copyof方法将元素放到一个不可修改的集合并返回
+
+```java
+
+    /**
+     * Returns an <a href="#unmodifiable">unmodifiable List</a> containing the elements of
+     * the given Collection, in its iteration order. The given Collection must not be null,
+     * and it must not contain any null elements. If the given Collection is subsequently
+     * modified, the returned List will not reflect such modifications.
+     *
+     * @implNote
+     * If the given Collection is an <a href="#unmodifiable">unmodifiable List</a>,
+     * calling copyOf will generally not create a copy.
+     *
+     * @param <E> the {@code List}'s element type
+     * @param coll a {@code Collection} from which elements are drawn, must be non-null
+     * @return a {@code List} containing the elements of the given {@code Collection}
+     * @throws NullPointerException if coll is null, or if it contains any nulls
+     * @since 10
+     */
+    static <E> List<E> copyOf(Collection<? extends E> coll) {
+        return ImmutableCollections.listCopy(coll);
+    }
+```
+
+
+
+
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Project name(项目名称)：JDK10_copyOf
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 12:05
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        List<String> list = new ArrayList<>();
+        list.add("1");
+        list.add("2");
+        List<String> list1 = List.copyOf(list);
+        System.out.println(list);
+        System.out.println(list1);
+        System.out.println(list == list1);
+        System.out.println(list.getClass());
+        System.out.println(list1.getClass());
+        list1.remove(0);
+    }
+}
+```
+
+
+
+```sh
+[1, 2]
+[1, 2]
+false
+class java.util.ArrayList
+class java.util.ImmutableCollections$List12
+Exception in thread "main" java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:142)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableList.remove(ImmutableCollections.java:258)
+	at mao.Test1.main(Test1.java:33)
+```
+
+
+
+copyof返回的是不可变集合，所有对元素增删改的方法都会抛出异常
+
+
+
+```java
+package mao;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Project name(项目名称)：JDK10_copyOf
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 15:16
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        Set<String> strings = new HashSet<>();
+        strings.add("1");
+        Set<String> strings1 = Set.copyOf(strings);
+        System.out.println(strings1);
+        System.out.println(strings1.getClass());
+        Map<Object, Object> map = Map.copyOf(new HashMap<>());
+        System.out.println(map.getClass());
+    }
+}
+```
+
+
+
+```sh
+[1]
+class java.util.ImmutableCollections$Set12
+class java.util.ImmutableCollections$MapN
+```
+
+
+
+
+
+
+
+
+
+## transferTo方法复制文件
+
+### 概述
+
+以前IO流复制文件：
+
+```java
+package mao;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+/**
+ * Project name(项目名称)：JDK10_transferTo_copy_file
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 15:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args) throws IOException
+    {
+        // 字符流复制文本文件
+        FileReader fis = new FileReader("./a.txt");
+        FileWriter fos = new FileWriter("./b.txt");
+        char[] chs = new char[1024 * 8];
+        int len;
+        while ((len = fis.read(chs)) != -1)
+        {
+            fos.write(chs, 0, len);
+        }
+        fis.close();
+        fos.close();
+
+    }
+}
+```
+
+
+
+JDK10 给 InputStream 和 Reader 类中新增了 transferTo 方法， transferTo 方法的作用是将输入流读取的数据使用字符输出流写出。可用于复制文件等操作
+
+```java
+/**
+ * Reads all characters from this reader and writes the characters to the
+ * given writer in the order that they are read. On return, this reader
+ * will be at end of the stream. This method does not close either reader
+ * or writer.
+ * <p>
+ * This method may block indefinitely reading from the reader, or
+ * writing to the writer. The behavior for the case where the reader
+ * and/or writer is <i>asynchronously closed</i>, or the thread
+ * interrupted during the transfer, is highly reader and writer
+ * specific, and therefore not specified.
+ * <p>
+ * If an I/O error occurs reading from the reader or writing to the
+ * writer, then it may do so after some characters have been read or
+ * written. Consequently the reader may not be at end of the stream and
+ * one, or both, streams may be in an inconsistent state. It is strongly
+ * recommended that both streams be promptly closed if an I/O error occurs.
+ *
+ * @param  out the writer, non-null
+ * @return the number of characters transferred
+ * @throws IOException if an I/O error occurs when reading or writing
+ * @throws NullPointerException if {@code out} is {@code null}
+ *
+ * @since 10
+ */
+public long transferTo(Writer out) throws IOException {
+    Objects.requireNonNull(out, "out");
+    long transferred = 0;
+    char[] buffer = new char[TRANSFER_BUFFER_SIZE];
+    int nRead;
+    while ((nRead = read(buffer, 0, TRANSFER_BUFFER_SIZE)) >= 0) {
+        out.write(buffer, 0, nRead);
+        transferred += nRead;
+    }
+    return transferred;
+}
+```
+
+
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+/**
+ * Project name(项目名称)：JDK10_transferTo_copy_file
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 15:33
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args) throws IOException
+    {
+        FileReader fis = new FileReader("./a.txt");
+        FileWriter fos = new FileWriter("./c.txt");
+        fis.transferTo(fos);
+        fis.close();
+        fos.close();
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# JDK11
+
+## 基于嵌套的访问控制
+
+### 概述
+
+如果你在一个类中嵌套了多个类，各类中可以直接访问彼此的私有成员。因为JDK 11开始在 private,public,protected的基础上，JVM又提供了一种新的访问机制：Nest
+
+JDK 11开始，嵌套是一种访问控制上下文，它允许多个class同属一个逻辑代码块，但是被编译成多个分散的class文 件，它们访问彼此的私有成员无需通过编译器添加访问扩展方法，而是可以直接进行访问，如果上述代码可以直接通过反射访问外部类的私有成员，而不会出现权限问题
+
+
+
+### 使用
+
+
+
+```java
+package mao;
+
+import java.lang.reflect.Field;
+
+/**
+ * Project name(项目名称)：JDK11_nesting_based_access_control
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 16:52
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    private int outerInt;
+
+    class Inner
+    {
+        public void test() throws Exception
+        {
+            System.out.println("Outer int = " + outerInt);
+            // JDK 11之前，如下代码报出异常：IllegalAccessException
+            Class c = Test1.class;
+            Field f = c.getDeclaredField("outerInt");
+            f.set(Test1.this, 23);
+        }
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+        new Test1().new Inner().test();
+    }
+
+}
+```
+
+
+
+
+
+
+
+
+
+## String新增处理方法
+
+### 概述
+
+JDK11新增了一些使用的String处理方法：
+
+* 判断字符串是否为空白：isBlank()
+* 去除首尾空白，可以去除全角的空白字符：strip()
+* 去除尾部空格：stripTrailing()
+* 去除首部空格：stripLeading()
+* 复制字符串：repeat(数量)
+* 行数统计：lines().count()
+
+
+
+### 使用
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK11_string_new_processing_method
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 16:59
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        //判断字符串是否为空白
+        System.out.println(" ".isBlank());
+        System.out.println("   ".isBlank());
+        System.out.println(" a ".isBlank());
+        System.out.println("".isBlank());
+
+        //去除首尾空白
+        System.out.println(" a ".strip());
+        System.out.println(" a    ".strip());
+        System.out.println("a  ".strip());
+        System.out.println("  a".strip());
+        System.out.println("a".strip());
+        System.out.println("".strip());
+        System.out.println("   ".strip());
+        System.out.println(" a  b".strip());
+        System.out.println(" a  b   ".strip());
+
+        //去除尾部空格
+        System.out.println(" a ".stripTrailing());
+        System.out.println(" a    ".stripTrailing());
+        System.out.println("a  ".stripTrailing());
+        System.out.println("  a".stripTrailing());
+        System.out.println("a".stripTrailing());
+        System.out.println("".stripTrailing());
+        System.out.println("   ".stripTrailing());
+        System.out.println(" a  b".stripTrailing());
+        System.out.println(" a  b   ".stripTrailing());
+
+        //去除首部空格
+        System.out.println(" a ".stripLeading());
+        System.out.println(" a    ".stripLeading());
+        System.out.println("a  ".stripLeading());
+        System.out.println("  a".stripLeading());
+        System.out.println("a".stripLeading());
+        System.out.println("".stripLeading());
+        System.out.println("   ".stripLeading());
+        System.out.println(" a  b".stripLeading());
+        System.out.println(" a  b   ".stripLeading());
+
+        //复制字符串
+        System.out.println("12345".repeat(5));
+        System.out.println(" 12345 ".repeat(5));
+        System.out.println("12345".repeat(3));
+
+        //行数统计
+        System.out.println("\n\n\n".lines().count());
+        System.out.println("\n\n\n\n\n".lines().count());
+    }
+}
+```
+
+
+
+```sh
+true
+true
+false
+true
+a
+a
+a
+a
+a
+
+
+a  b
+a  b
+ a
+ a
+a
+  a
+a
+
+
+ a  b
+ a  b
+a 
+a    
+a  
+a
+a
+
+
+a  b
+a  b   
+1234512345123451234512345
+ 12345  12345  12345  12345  12345 
+123451234512345
+3
+5
+```
+
+
+
+
+
+
+
+
+
+## 集合新增的API
+
+把List集合转换成数组：
+
+```java
+package mao;
+
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * Project name(项目名称)：JDK11_string_new_processing_method
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:10
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        List<Integer> list = List.of(10, 11, 12, 13, 14);
+        //11之前
+        Integer[] integers = list.toArray(new Integer[0]);
+        //11之后
+        Integer[] integers1 = list.toArray(Integer[]::new);
+        System.out.println(Arrays.toString(integers));
+        System.out.println(Arrays.toString(integers1));
+    }
+}
+```
+
+
+
+```sh
+[10, 11, 12, 13, 14]
+[10, 11, 12, 13, 14]
+```
+
+
+
+
+
+
+
+## 更方便的IO
+
+### Path
+
+此前我们需要使用 Paths.get()。现在，我们像其他类一样使用 of()
+
+
+
+```java
+package mao;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:16
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        Path path = Paths.get("./");
+        Path path1 = Path.of("./");
+        System.out.println(path);
+        System.out.println(path1);
+    }
+}
+```
+
+
+
+
+
+### Files
+
+writeString(Path, CharSequence) 我们可以使用该方法来保存一个 String 字符串
+
+```java
+package mao;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:20
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args) throws IOException
+    {
+        File file = new File("./a.txt");
+        Files.writeString(file.toPath(), "hello");
+    }
+}
+```
+
+
+
+
+
+我们可以使用readString(Path)方法来读取一个 String 字符串
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:22
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args) throws IOException
+    {
+        System.out.println(Files.readString(Path.of("./a.txt")));
+    }
+}
+```
+
+
+
+
+
+
+
+### Reader
+
+使用nullReader()方法，我们可以得到一个不执行任何操作的 Reader
+
+
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.io.Reader;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test4
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:24
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test4
+{
+    public static void main(String[] args) throws IOException
+    {
+        Reader reader = Reader.nullReader();
+        System.out.println(reader);
+        System.out.println(reader.read());
+    }
+}
+```
+
+
+
+```sh
+java.io.Reader$1@3b07d329
+-1
+```
+
+
+
+
+
+### Writer
+
+使用nullWriter() 方法，我们可以得到一个不执行任何操作的 Writer
+
+
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.io.Writer;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test5
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:25
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test5
+{
+    public static void main(String[] args) throws IOException
+    {
+        Writer writer = Writer.nullWriter();
+        System.out.println(writer);
+        writer.write("abc");
+    }
+}
+```
+
+
+
+
+
+### InputStream
+
+nullInputStream() 使用该方法，我们可以得到一个不执行任何操作的 InputStream
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test6
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:29
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test6
+{
+    public static void main(String[] args) throws IOException
+    {
+        InputStream inputStream = InputStream.nullInputStream();
+        System.out.println(inputStream);
+        int read = inputStream.read();
+        System.out.println(read);
+    }
+}
+```
+
+
+
+
+
+InputStream 有了一个非常有用的方法：transferTo，可以用来将数据直接传输到 OutputStream，这是在处理原始数据流时非常常见的一种用法
+
+```java
+package mao;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test7
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:31
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test7
+{
+    public static void main(String[] args) throws IOException
+    {
+        FileInputStream fileInputStream = new FileInputStream("a.txt");
+        fileInputStream.transferTo(new FileOutputStream("c.txt"));
+    }
+}
+```
+
+
+
+
+
+### OutputStream
+
+使用该方法，我们可以得到一个不执行任何操作的 OutputStream
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * Project name(项目名称)：JDK11_more_convenient_io
+ * Package(包名): mao
+ * Class(类名): Test8
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 17:34
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test8
+{
+    public static void main(String[] args) throws IOException
+    {
+        OutputStream outputStream = OutputStream.nullOutputStream();
+        System.out.println(outputStream);
+        outputStream.write("123".getBytes(StandardCharsets.UTF_8));
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+## 标准JavaHTTP客户端
+
+从 Java 9 开始引入了一个处理 HTTP 请求的的 HTTP Client API，不过当时一直处于孵化阶段，而在 Java 11 中已经为正式可用状态，作为一个标准API提供在java.net.http供大家使用，该 API 支持同步和异步请求
+
+
+
+HTTP Client的优势：
+
+* API必须是易于使用的，包括简单的阻塞模式
+* 必须支持通知机制如HTTP消息头收到、错误码、HTTP消息体收到
+* 简洁的API能够支持80-90%的需求
+* 必须支持标准和通用身份验证机制
+* 必须能够轻松使用WebSocket
+* 必须支持HTTP 2
+* 必须执行与现有网络API一致的安全检查
+* 必须对lambda表达式等新语言功能很友好
+* 应该对嵌入式系统友好，避免永久运行的后台线程
+* 必须支持HTTPS / TLS
+* 满足HTTP 1.1和HTTP 2的性能要求
+
+
+
+
+
+
+
+## Unicode 10
+
+升级现有平台的API，支持Unicode 10，
+
+Unicode10的标准请参考网站（http://unicode.org/versions/Unicode 10.0.0） 目前支持最新的Unicode的类主要有
+
+* java.lang包下的Character, String
+* java.awt.font下的相关类
+* java.text包下的Bidi,Normalizer等
+
+
+
+
+
+```sh
+package mao;
+
+/**
+ * Project name(项目名称)：JDK11_improved_aarch_64
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 18:01
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        System.out.println("\uD83E\uDD93");
+        System.out.println("\uD83E\uDD92");
+        System.out.println("\uD83E\uDDDA");
+        System.out.println("\uD83E\uDDD9");
+        System.out.println("\uD83E\uDDD1");
+        System.out.println("\uD83E\uDDD8");
+        System.out.println("\uD83E\uDD95");
+        System.out.println("\uD83E\uDD2e");
+    }
+}
+
+```
+
+
+
+```sh
+🦓
+🦒
+🧚
+🧙
+🧑
+🧘
+🦕
+🤮
+```
+
+
+
+
+
+## 改进Aarch64函数
+
+改进现有的字符串和数组函数，并在Aarch64处理器上为java.lang.Math 下的sin , cos 和log函数实现新的内联函数。从而实现专用的CPU架构下提高应用程序的性能
+
+```java
+package mao;
+
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Project name(项目名称)：JDK11_improved_aarch_64
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/2
+ * Time(创建时间)： 18:06
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        long startTime = System.nanoTime();
+        for (int i = 0; i < 10000000; i++)
+        {
+            Math.sin(i);
+            Math.cos(i);
+            Math.log(i);
+        }
+        long endTime = System.nanoTime();
+        // JDK 11下耗时：476ms
+        // JDK 8前耗时：4369ms
+        System.out.println(TimeUnit.NANOSECONDS.toMillis(endTime - startTime) + "ms");
+    }
+}
+```
+
+
+
+
+
+
+
+## 更简化的编译运行程序
+
+增强java启动器支持运行单个java源代码文件的程序
+
+一个命令编译运行源代码：
+
+```sh
+java HelloWorld.java
+```
+
+
+
+
+
+
+
+## Epsilon垃圾收集器
+
