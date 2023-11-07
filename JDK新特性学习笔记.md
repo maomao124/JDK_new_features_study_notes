@@ -10200,3 +10200,483 @@ Test1.testSleep02  avgt    5   62.067 ± 0.382  ms/op
 
 ## 默认生成类数据共享
 
+我们知道在同一个物理机上启动多个JVM时，如果每个虚拟机都单独装载自己需要的所有类，启动成本和内存占用是比较高的。所以Java团队引入了类数据共享机制 (Class Data Sharing ，简称 CDS) 的概念，通过把一些核心类在每个 JVM间共享，每个JVM只需要装载自己的应用类即可
+
+好处是：JVM启动时间减少了，另外核心类是共享的，所以JVM的内存占用也减少了
+
+JDK 12之前，想要利用CDS的用户，即使仅使用JDK中提供的默认类列表，也必须 java -Xshare:dump 作为额外的步骤来运行
+
+Java 12 针对 64 位平台下的 JDK 构建过程进行了增强改进，使其默认生成类数据共享（CDS）归档，以进一步达到改进应用程序的启动时间的目的
+
+同时也取消了用户必须手动运行：java -Xshare:dump 才能使用CDS的功能
+
+
+
+
+
+
+
+
+
+## Shenandoah GC
+
+添加一个名为Shenandoah的新垃圾收集（GC）算法，通过与正在运行的Java线程同时进行疏散工作来减少GC暂停 时间，最终目标旨在针对 JVM 上的内存收回**实现低停顿的需求**
+
+使用Shenandoah的暂停时间与堆大小无关，这意味着无论堆是200MB还是200GB，您都将具有相同的一致暂停时间
+
+与 ZGC 类似，Shenandoah GC 主要目标是 99.9% 的暂停小于 10ms，暂停与堆大小无关等
+
+
+
+要启用/使用Shenandoah GC，需要JVM选项： `-XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC`
+
+
+
+
+
+## G1垃圾收集器功能增强
+
+如果G1垃圾收集器有可能超过预期的暂停时间，则可以使用终止选项
+
+该垃圾收集器设计的主要目标之一是满足用户设置的预期的 JVM 停顿时间，可以终止可选部分的回收已到达停顿时间的目标
+
+如果应用程序活动非常低，G1应该在合理的时间段内释放未使用的Java堆内存
+
+G1可以使其能够在空闲时自动将 Java 堆内存返还给操作系统
+
+
+
+
+
+
+
+
+
+## String增强
+
+### 概述
+
+Java 11 增加了两个的字符串处理方法
+
+* `indent()` 方法可以实现字符串缩进
+* `transform()` 方法可以用来转变指定字符串
+
+
+
+
+
+### 使用
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK12_new_features
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/6
+ * Time(创建时间)： 17:26
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        String text = "Java";
+        // 缩进 4 格
+        System.out.println(text);
+        text = text.indent(4);
+        System.out.println(text);
+        text = text.indent(8);
+        System.out.println(text);
+        text = text.indent(2);
+        System.out.println(text);
+        text = text.indent(1);
+        System.out.println(text);
+        text = text.indent(0);
+        System.out.println(text);
+        text = text.indent(-10);
+        System.out.println(text);
+    }
+}
+```
+
+
+
+```sh
+Java
+    Java
+
+            Java
+
+              Java
+
+               Java
+
+               Java
+
+     Java
+```
+
+
+
+
+
+```java
+package mao;
+
+import java.util.Locale;
+import java.util.function.Function;
+
+/**
+ * Project name(项目名称)：JDK12_new_features
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/6
+ * Time(创建时间)： 17:28
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        System.out.println("abc".transform(new Function<String, String>()
+        {
+            @Override
+            public String apply(String s)
+            {
+                return s.toUpperCase(Locale.ROOT);
+            }
+        }));
+        String result = "foo".transform(input -> input + " bar");
+        System.out.println(result); // foo bar
+    }
+}
+```
+
+
+
+```sh
+ABC
+foo bar
+```
+
+
+
+
+
+
+
+## Files增强
+
+### 概述
+
+Java 12 添加了以下方法来比较两个文件：
+
+* `mismatch()` 方法用于比较两个文件，并返回第一个不匹配字符的位置，如果文件相同则返回 -1L
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+/**
+ * Project name(项目名称)：JDK12_new_features
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/6
+ * Time(创建时间)： 17:33
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args) throws IOException
+    {
+        {
+            Path filePath1 = Files.createTempFile("file1", ".txt");
+            Path filePath2 = Files.createTempFile("file2", ".txt");
+            Files.writeString(filePath1, "1234567890");
+            Files.writeString(filePath2, "1234567890");
+
+            long mismatch = Files.mismatch(filePath1, filePath2);
+            System.out.println(mismatch);
+        }
+
+        {
+            Path filePath3 = Files.createTempFile("file3", ".txt");
+            Path filePath4 = Files.createTempFile("file4", ".txt");
+            Files.writeString(filePath3, "1234567890");
+            Files.writeString(filePath4, "1234557890");
+
+            long mismatch = Files.mismatch(filePath3, filePath4);
+            System.out.println(mismatch);
+        }
+        {
+            Path filePath3 = Files.createTempFile("file3", ".txt");
+            Path filePath4 = Files.createTempFile("file4", ".txt");
+            Files.writeString(filePath3, "1234567890");
+            Files.writeString(filePath4, "1224557890");
+
+            long mismatch = Files.mismatch(filePath3, filePath4);
+            System.out.println(mismatch);
+        }
+    }
+}
+```
+
+
+
+```sh
+-1
+5
+2
+```
+
+
+
+
+
+
+
+## 数字格式化工具类
+
+### 概述
+
+`NumberFormat` 新增了对复杂的数字进行格式化的支持
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.text.NumberFormat;
+import java.util.Locale;
+
+/**
+ * Project name(项目名称)：JDK12_new_features
+ * Package(包名): mao
+ * Class(类名): Test4
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/6
+ * Time(创建时间)： 22:15
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test4
+{
+    public static void main(String[] args)
+    {
+        NumberFormat fmt = NumberFormat.getCompactNumberInstance(Locale.US, NumberFormat.Style.SHORT);
+        String result = fmt.format(1000);
+        System.out.println(result);
+        result = fmt.format(10000);
+        System.out.println(result);
+        result = fmt.format(2000);
+        System.out.println(result);
+        result = fmt.format(5500);
+        System.out.println(result);
+        result = fmt.format(7400);
+        System.out.println(result);
+        result = fmt.format(740000);
+        System.out.println(result);
+        result = fmt.format(740000000);
+        System.out.println(result);
+        result = fmt.format(60000000000L);
+        System.out.println(result);
+        NumberFormat cnf = NumberFormat.getCompactNumberInstance(Locale.CHINA, NumberFormat.Style.SHORT);
+        System.out.println(cnf.format(1000));
+        System.out.println(cnf.format(10000));
+        System.out.println(cnf.format(2000));
+        System.out.println(cnf.format(5500));
+        System.out.println(cnf.format(7400));
+        System.out.println(cnf.format(985555));
+        System.out.println(cnf.format(740000));
+        System.out.println(cnf.format(985555000));
+        System.out.println(cnf.format(240007400));
+        System.out.println(cnf.format(985550000005L));
+    }
+}
+
+```
+
+
+
+```sh
+1K
+10K
+2K
+6K
+7K
+740K
+740M
+60B
+1,000
+1万
+2,000
+5,500
+7,400
+99万
+74万
+10亿
+2亿
+9856亿
+```
+
+
+
+
+
+
+
+
+
+## instanceof 模式匹配
+
+### 概述
+
+`instanceof` 主要在类型强转前探测对象的具体类型
+
+
+
+### 使用
+
+之前的版本中，我们需要显示地对对象进行类型转换
+
+```java
+ Object o = "hello";
+        if (o instanceof String)
+        {
+            String str = (String) o;
+            System.out.println(str);
+        }
+```
+
+
+
+新版的 `instanceof` 可以在判断是否属于具体的类型同时完成转换
+
+```java
+if (o instanceof String str)
+        {
+            System.out.println(str);
+        }
+```
+
+
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK12_new_features
+ * Package(包名): mao
+ * Class(类名): Test5
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/7
+ * Time(创建时间)： 10:40
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test5
+{
+    public static void main(String[] args)
+    {
+        Object o = "hello";
+        if (o instanceof String)
+        {
+            String str = (String) o;
+            System.out.println(str);
+        }
+        if (o instanceof String str)
+        {
+            System.out.println(str);
+        }
+    }
+}
+```
+
+
+
+```sh
+hello
+hello
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 其它
+
+### 移除项
+
+* 移除com.sun.awt.SecurityWarnin
+* 移除FileInputStream、FileOutputStream、- Java.util.ZipFile/Inflator/Deflator的finalize方法
+* 移除GTE CyberTrust Global Root
+* 移除javac的-source, -target对6及1.6的支持，同时移除--release选项
+
+
+
+
+
+### 废弃项
+
+* 废弃的API列表见deprecated-list 
+* 废弃-XX:+/-MonitorInUseLists选项 
+* 废弃Default Keytool的-keyalg值
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# JDK13
+
