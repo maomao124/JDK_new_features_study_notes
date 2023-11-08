@@ -10945,3 +10945,504 @@ hello
 
 ## switch表达式
 
+### 概述
+
+扩展switch分支选择语句的写法。Switch表达式在经过JDK 12的预览之后，在JDK 13中可以继续使用。
+
+Java的switch语句是一个变化较大的语法（可能是因为Java的switch语句一直不够强大、熟悉swift或者js语言的同学可与swift的switch语句对比一下，就会发现Java的switch相对较弱），因为Java的很多版本都在不断地改进switch语句：JDK 12扩展了switch语句，使其可以用作语句或者表达式，并且传统的和扩展的简化版switch都可以使用。
+
+JDK 13的该JEP是从[JEP 325](https://openjdk.java.net/jeps/325)]演变而来的
+
+
+
+
+
+### 使用
+
+参考<a href='#switch表达式'>switch表达式</a>
+
+
+
+### Yielding a value
+
+当使用箭头标签时，箭头标签右边可以是表达式、`throw`语句或是代码块。如果是代码块，需要使用`yield`语句来返回值。下面代码中的print方法中的`default`语句的右边是一个代码块。在代码块中使用`yield`来返回值。，JDK 13引入了一个新的`yield`语句来产生一个值，该值成为封闭的switch表达式的值
+
+```java
+public void print(int days) {
+  // 声明变量score，并为其赋值为'C'
+  var score = 'B';
+  String result = switch (score) {
+      case 'A', 'B' -> "上等";
+      case 'C' -> "中等";
+      case 'D', 'E' -> "下等";
+      default -> {
+          if (score > 100) {
+            yield "数据不能超过100";
+          } else {
+            yield score + "此分数低于0分";
+          }
+      }
+  };
+  System.out.println(result);
+}
+```
+
+
+
+在`switch`表达式中不能使用`break`。`switch`表达式的每个标签都必须产生一个值，或者抛出异常。`switch`表达式必须穷尽所有可能的值。这意味着通常需要一个`default`语句。一个例外是枚举类型。如果穷尽了枚举类型的所有可能值，则不需要使用`default`。在这种情况下，编译器会自动生成一个`default`语句。这是因为枚举类型中的枚举值可能发生变化。比如，枚举类型`Color` 中原来只有3个值：`RED`、`GREEN`和`BLUE`。使用该枚举类型的`switch`表达式穷尽了3种情况并完成编译。之后`Color`中增加了一个新的值`YELLOW`，当用这个新的值调用之前的代码时，由于不能匹配已有的值，编译器产生的`default`会被调用，告知枚举类型发生改变
+
+
+
+
+
+
+
+## 文本块升级
+
+### 概述
+
+预览功能。在Java中，在字符串文字中嵌入HTML，XML，SQL或JSON片段`"..."`通常需要先进行转义和串联的大量编辑，然后才能编译包含该片段的代码。该代码段通常难以阅读且难以维护，因此，如果具有一种语言学机制，可以比多行文字更直观地表示字符串，而且可以跨越多行，而且不会出现转义的视觉混乱，那么这将提高广泛Java类程序的可读性和可写性。从JDK 13到JDK 13开始文本块新特性的提出，提高了Java程序书写大段字符串文本的可读性和方便性
+
+文本块是Java语言的新语法，可以用来表示任何字符串，具有更高的表达能力和更少的复杂度。文本块的开头定界符是由三个双引号 **"""** 开始，从新的一行开始字符串的内容。这里的新起的这行不属于字符串，只表示内容开始，是语法的一部分。以 **"""** 结束。 **"""** 可以紧跟字符串内容，也可以另起一行。另起一行时，字符串内容最后会留有一新行
+
+
+
+### 使用
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK13_textBlock
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/8
+ * Time(创建时间)： 11:40
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        String html = "<html>\n" +
+                "    <body>\n" +
+                "        <p>Hello, world</p>\n" +
+                "    </body>\n" +
+                "</html>\n";
+        System.out.println(html);
+        //文本块
+        html = """
+                <html>
+                    <body>
+                        <p>Hello, world</p>
+                    </body>
+                </html>
+                """;
+        System.out.println(html);
+
+    }
+}
+```
+
+
+
+```html
+<html>
+    <body>
+        <p>Hello, world</p>
+    </body>
+</html>
+
+<html>
+    <body>
+        <p>Hello, world</p>
+    </body>
+</html>
+```
+
+
+
+
+
+```java
+"""
+line 1
+line 2
+line 3
+"""
+```
+
+等效于字符串文字：
+
+```java
+"line 1\nline 2\nline 3\n"
+```
+
+或字符串文字的串联：
+
+```java
+"line 1\n" +
+"line 2\n" +
+"line 3\n"
+```
+
+
+
+
+
+如果在字符串的末尾不需要行终止符，则可以将结束定界符放在内容的最后一行。例如，文本块：
+
+```java
+"""
+line 1
+line 2
+line 3"""
+```
+
+等效于字符串文字：
+
+```java
+"line 1\nline 2\nline 3"
+```
+
+
+
+文本块可以表示空字符串，尽管不建议这样做，因为它需要两行源代码：
+
+```java
+String empty = """
+""";
+```
+
+
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK13_textBlock
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/8
+ * Time(创建时间)： 11:44
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        String str = "line 1\nline 2\nline 3\n";
+        System.out.println(str);
+        str = """
+                line 1
+                line 2
+                line 3
+                """;
+        System.out.println(str);
+        str = "line 1\n" +
+                "line 2\n" +
+                "line 3\n";
+        System.out.println(str);
+
+        str = "line 1\nline 2\nline 3";
+        System.out.println(str);
+        str = """
+                line 1
+                line 2
+                line 3""";
+        System.out.println(str);
+
+        String empty = """
+                """;
+        System.out.println(empty);
+    }
+}
+
+```
+
+
+
+```sh
+line 1
+line 2
+line 3
+
+line 1
+line 2
+line 3
+
+line 1
+line 2
+line 3
+
+line 1
+line 2
+line 3
+line 1
+line 2
+line 3
+
+```
+
+
+
+
+
+### SQL
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK13_textBlock
+ * Package(包名): mao
+ * Class(类名): Test3
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/8
+ * Time(创建时间)： 11:54
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test3
+{
+    public static void main(String[] args)
+    {
+        //分配角色,sys_user_role
+        String roleInsertSql = "insert into sys_user_role \n" +
+                "(user_role_id,user_id,role_id,add_userid,add_date,tenant_id) \n" +
+                "values(?,(select user_id from sys_user where mob_code=?),?,?,now(),?)";
+        System.out.println(roleInsertSql);
+        System.out.println();
+        roleInsertSql = """
+                insert into sys_user_role\s
+                (user_role_id,user_id,role_id,add_userid,add_date,tenant_id)\s
+                values(?,(select user_id from sys_user where mob_code=?),?,?,now(),?)""";
+        System.out.println(roleInsertSql);
+
+    }
+}
+```
+
+
+
+
+
+```sh
+insert into sys_user_role 
+(user_role_id,user_id,role_id,add_userid,add_date,tenant_id) 
+values(?,(select user_id from sys_user where mob_code=?),?,?,now(),?)
+
+insert into sys_user_role 
+(user_role_id,user_id,role_id,add_userid,add_date,tenant_id) 
+values(?,(select user_id from sys_user where mob_code=?),?,?,now(),?)
+```
+
+
+
+
+
+
+
+### 多语言示例
+
+```java
+package mao;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
+/**
+ * Project name(项目名称)：JDK13_textBlock
+ * Package(包名): mao
+ * Class(类名): Test4
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/8
+ * Time(创建时间)： 11:59
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test4
+{
+    public static void main(String[] args) throws ScriptException
+    {
+        ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
+        Object obj = engine.eval("function hello() {\n" +
+                "    print('\"Hello, world\"');\n" +
+                "}\n" +
+                "\n" +
+                "hello();\n");
+        System.out.println(obj);
+
+        //使用文本块
+        engine = new ScriptEngineManager().getEngineByName("js");
+        obj = engine.eval("""
+                         function hello() {
+                             print('"Hello, world"');
+                         }
+                         
+                         hello();
+                         """);
+        System.out.println(obj);
+    }
+}
+```
+
+
+
+
+
+
+
+### 缩进
+
+java编译器会自动删除不需要的缩进：
+
+- 每行结尾的空格都会删除
+- 每行开始的共有的空格会自动删除
+- 只保留相对缩进
+
+
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK13_textBlock
+ * Package(包名): mao
+ * Class(类名): Test5
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/8
+ * Time(创建时间)： 14:17
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test5
+{
+    public static void main(String[] args)
+    {
+        String str = """
+                a  
+                b   c
+                 d 
+                e""";
+        System.out.println(str);
+        str = """
+           a  
+           b   c
+            d 
+           e""";
+        System.out.println(str);
+        str = """
+           a  
+      b   c
+            d 
+           e""";
+        System.out.println(str);
+
+        str = """
+           a  
+                    b   c
+                 d 
+              e""";
+        System.out.println(str);
+    }
+}
+```
+
+
+
+```sh
+a
+b   c
+ d
+e
+a
+b   c
+ d
+e
+     a
+b   c
+      d
+     e
+a
+         b   c
+      d
+   e
+```
+
+
+
+
+
+
+
+## 动态类数据共享归档
+
+允许在Java应用程序执行结束时动态归档类。归档的类将包括默认基层CDS归档中不存在的所有已加载应用程序类和库类
+
+CDS，是java 12的特性了，可以让不同 Java 进程之间共享一份类元数据，减少内存占用，它还能加快应用的启动速度。而JDK13的这个特性支持在Java application执行之后进行动态archive。存档类将包括默认的基础层CDS存档中不存在的所有已加载的应用程序和库类。也就是说，在Java 13中再使用AppCDS的时候，就不再需要这么复杂了。该提案处于目标阶段，旨在提高AppCDS的可用性，并消除用户进行试运行以创建每个应用程序的类列表的需要
+
+JDK13这次对CDS增强的主要目的
+
+- 改善AppCDS的可用性，减少用户每次都要创建一个类列表的需要
+- 通过开启， `-Xshare:dump` 选项来开启静态归档，使用类列表仍然行得通。会包含内置的类加载信息和用户定义的类加载信息
+
+
+
+在JDK13中做的增强，可以只开启命令行选项完成上面过程，在程序运行的时候，动态评估那些类需要归档，同时支持内置的类加载器和用户定义的类加载器。
+
+在第一次程序执行完成之后，会自动的将类进行归档，后续在启动项目的时候也无需指定要使用哪些归档，整个过程看起来更加的透明
+
+
+
+
+
+## ZGC增强
+
+作用：将未使用的堆内存还给系统（即未提交的内存空间）
+
+ZGC 是 Java 11 中引入的最为瞩目的垃圾回收特性，是一种可伸缩、低延迟的垃圾收集器，不过在 Java 11 中是实验性的引入，主要用来改善 GC 停顿时间，并支持几百 MB 至几个 TB 级别大小的堆，并且应用吞吐能力下降不会超过 15%，目前只支持 Linux/x64 位平台的这样一种新型垃圾收集器。
+
+通过在实际中的使用，发现 ZGC 收集器中并没有像 Hotspot 中的 G1 和 Shenandoah 垃圾收集器一样，能够主动将未使用的内存释放给操作系统的功能。对于大多数应用程序来说，CPU 和内存都属于有限的紧缺资源，特别是现在使用的云上或者虚拟化环境中。如果应用程序中的内存长期处于空闲状态，并且还不能释放给操作系统，这样会导致其他需要内存的应用无法分配到需要的内存，而这边应用分配的内存还处于空闲状态，处于"忙的太忙，闲的太闲"的非公平状态，并且也容易导致基于虚拟化的环境中，因为这些实际并未使用的资源而多付费的情况。由此可见，将未使用内存释放给系统主内存是一项非常有用且亟需的功能。
+
+Java 13 中对 ZGC 的改进，主要体现在下面几点：
+
+- 释放未使用内存给操作系统
+- 支持最大堆大小为 16TB
+
+Java 13 中，ZGC 内存释放功能，默认情况下是开启的，不过可以使用参数：`-XX：-ZUncommit` 显式关闭
+
+
+
+
+
+
+
+## 重新实现旧版Socket API
+
+
+
