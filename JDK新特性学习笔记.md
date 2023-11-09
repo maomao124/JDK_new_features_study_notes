@@ -1,3 +1,5 @@
+<h1 style="font-size:3.3em;color:skyblue;text-align:center">JDK新特性学习笔记</h1>
+
 [toc]
 
 ---
@@ -11444,5 +11446,305 @@ Java 13 中，ZGC 内存释放功能，默认情况下是开启的，不过可�
 
 ## 重新实现旧版Socket API
 
+### 概述
 
+现在已有的 java.net.Socket 和 java.net.ServerSocket 以及它们的实现类，都可以回溯到 JDK 1.0 时代了。原始socket的维护和调试都很痛苦。实现类还使用了线程栈作为 I/O 的缓冲，导致在某些情况下还需要增加线程栈的大小。该实现还存在几个并发问题，需要彻底解决。在未来的网络世界，要快速响应，不能阻塞本地方法线程，当前的实现不适合使用了。
+
+
+
+在 Java 13 之前，通过使用 `PlainSocketImpl` 作为 `SocketImpl` 的具体实现。
+
+Java 13 中的新底层实现，引入 `NioSocketImpl` 的实现用以替换 `SocketImpl` 的 `PlainSocketImpl` 实现，此实现与 NIO（新 I/O）实现共享相同的内部基础结构，并且与现有的缓冲区高速缓存机制集成在一起，因此不需要使用线程堆栈。除了这些更改之外，还有其他一些更便利的更改，如使用 `java.lang.ref.Cleaner` 机制来关闭套接字（如果 `SocketImpl` 实现在尚未关闭的套接字上被进行了垃圾收集），以及在轮询时套接字处于非阻塞模式时处理超时操作等方面。
+
+全新实现的 NioSocketImpl 来替换JDK1.0的PlainSocketImpl。
+
+- 它便于维护和调试，与 NewI/O (NIO) 使用相同的 JDK 内部结构，因此不需要使用系统本地代码。
+- 它与现有的缓冲区缓存机制集成在一起，这样就不需要为 I/O 使用线程栈。
+- 它使用 java.util.concurrent 锁，而不是 synchronized 同步方法，增强了并发能力。
+- 新的实现是Java 13中的默认实现，但是旧的实现还没有删除，可以通过设置系统属性
+  jdk.net.usePlainSocketImpl来切换到旧版本。
+
+
+
+
+
+### 代码
+
+SocketImpl
+
+```java
+public abstract class SocketImpl implements SocketOptions {
+    private static final boolean USE_PLAINSOCKETIMPL = usePlainSocketImpl();
+
+    private static boolean usePlainSocketImpl() {
+        PrivilegedAction<String> pa = () -> NetProperties.get("jdk.net.usePlainSocketImpl");
+        @SuppressWarnings("removal")
+        String s = AccessController.doPrivileged(pa);
+        return (s != null) && !s.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Creates an instance of platform's SocketImpl
+     */
+    @SuppressWarnings("unchecked")
+    static <S extends SocketImpl & PlatformSocketImpl> S createPlatformSocketImpl(boolean server) {
+        if (USE_PLAINSOCKETIMPL) {
+            return (S) new PlainSocketImpl(server);
+        } else {
+            return (S) new NioSocketImpl(server);
+        }
+    }
+}
+```
+
+
+
+
+
+## FileSystems
+
+`FileSystems` 类中添加了以下三种新方法，以便更容易地使用将文件内容视为文件系统的文件系统提供程序：
+
+- `newFileSystem(Path)`
+- `newFileSystem(Path, Map<String, ?>)`
+- `newFileSystem(Path, Map<String, ?>, ClassLoader)`
+
+
+
+
+
+## 其它
+
+### 增加项
+
+* 新的java.nio.ByteBuffer Bulk get/put Methods Transfer Bytes Without Regard to Buffer Position
+* 支持Unicode 12.1
+* 添加-XX:SoftMaxHeapSize Flag，目前仅仅对ZGC起作用
+  ZGC的最大heap大小增大到16TB
+
+
+
+### 移除项
+
+* 移除awt.toolkit System Property
+* 移除Runtime Trace Methods
+* 移除-XX:+AggressiveOpts
+* 移除Two Comodo Root CA Certificates、Two DocuSign Root CA Certificates
+* 移除内部的com.sun.net.ssl包
+
+
+
+### 废弃项
+
+* 废弃-Xverify:none及-noverify
+* 废弃rmic Tool并准备移除
+* 废弃javax.security.cert并准备移除
+
+
+
+
+
+
+
+
+
+
+
+
+
+# JDK14
+
+## instanceof的模式匹配
+
+### 概述
+
+JEP 305新增了使instanceof运算符具有模式匹配的能力。模式匹配能够使程序的通用逻辑更加简洁，代码更加简单，同时在做类型判断和类型转换的时候也更加安全
+
+
+
+### 使用
+
+```java
+// 在方法的入口接收一个对象
+public void beforeWay(Object obj) {
+    // 通过instanceof判断obj对象的真实数据类型是否是String类型
+    if (obj instanceof String) {
+        // 如果进来了，说明obj的类型是String类型，直接进行强制类型转换。
+        String str = (String) obj;
+        // 输出字符串的长度
+        System.out.println(str.length());
+    }
+}
+```
+
+
+
+这段程序做了3件事：
+
+* 1. 先判断obj的真实数据类型
+* 2. 判断成立后进行了强制类型转换（将对象obj强制类型转换为String）
+* 3. 声明一个新的本地变量str，指向上面的obj 
+
+
+
+这种模式的逻辑并不复杂，并且几乎所有Java程序员都可以理解。但是出于以下原因，上述做法并不是最理想的：
+
+* 1. 语法臃肿乏味
+* 2. 同时执行类型检测校验和类型转换。
+* 3. String类型在程序中出现了3次，但是最终要的可能只是一个字符串类型的对象变量而已。
+* 4. 重复的代码过多，冗余度较高。
+
+JDK 14提供了新的解决方案：新的instanceof模式匹配 ，新的模式匹配的用法如下所示，在`instanceof`的类型之后添加了变量`str`。如果`instanceof`对`obj`的类型检查通过，`obj`会被转换成`str`表示的`String`类型。在新的用法中，`String`类型仅出现一次。
+
+
+
+```java
+public void patternMatching(Object obj) {
+    if (obj instanceof String str) {
+   	   // can use str here
+        System.out.println(str.length());
+    } else {
+        // can't use str here
+    }
+}
+
+```
+
+
+
+如果obj是String的实例，则将其强制转换为String并分配给绑定变量s。绑定变量在if语句的true块中，而不在if语句的false块中。
+
+```java
+if (obj instanceof String s) {
+    // 使用s
+} else {
+    // 不能使用s
+}
+```
+
+与局部变量的范围不同，绑定变量的范围由包含的表达式和语句的语义确定。例如，在此代码中：
+
+```java
+if (!(obj instanceof String s)) {
+    .. s.contains(..) ..
+} else {
+    .. s.contains(..) ..
+}
+```
+
+true块中的s表示封闭类中的字段，false块中的s表示由instanceof运算符引入的绑定变量。
+
+当if语句的条件变得比单个instanceof更复杂时，绑定变量的范围也会相应地增长。 例如，在此代码中：
+
+```java
+if (obj instanceof String s && s.length() > 5) {.. s.contains(..) ..}
+```
+
+绑定变量s在`&&`运算符右侧以及true块中。仅当instanceof成功并分配给s时，才评估右侧。
+
+另一方面，在此代码中：
+
+```java
+if (obj instanceof String s || s.length() > 5) {.. s.contains(..) ..}
+```
+
+绑定变量s不在`||`右侧的范围内运算符，也不在true块的范围内。s指的是封闭的一个字段。
+
+
+
+
+
+
+
+## Switch表达式
+
+### 概述
+
+扩展switch分支选择语句的写法。Switch表达式在经过JDK 12 和JDK13的预览之后，在JDK 14中已经稳定可用
+
+
+
+
+
+### 使用
+
+参考<a href='#switch表达式'>switch表达式</a>
+
+
+
+
+
+
+
+## Text Blocks
+
+### 概述
+
+Text Blocks (Second Preview) JDK 13后的第二个预览版
+
+在Java中，在字符串文字中嵌入HTML，XML，SQL或JSON片段`"..."`通常需要先进行转义和串联的大量编辑，然后才能编译包含该片段的代码。该代码段通常难以阅读且难以维护，因此，如果具有一种语言学机制，可以比多行文字更直观地表示字符串，而且可以跨越多行，而且不会出现转义的视觉混乱，那么这将提高广泛Java类程序的可读性和可写性。从JDK 13到JDK 14开始文本块新特性的提出，提高了Java程序书写大段字符串文本的可读性和方便性
+
+
+
+文本块（Text Blocks，第二次预览版）— 文本块作为预览特性首次引入Java 13后收到了众多最终用户的反馈。现在，文本块得到了增强，再次作为预览特性出现在Java 14中，目标成为未来JDK版本的标准特性。使用文本块可以轻松表达跨多行源代码的字符串。它提高了Java程序中以非Java语言编写的代码的字符串的可读性；它约定，任何新构造的文本块都可以用字符串相同的字符集表示，解释相同的转义序列并以与字符串相同的方式进行操作
+
+
+
+### 使用
+
+参考<a href='#文本块升级'>文本块升级</a>
+
+
+
+
+
+
+
+## Java打包工具
+
+### 概述
+
+孵化项目。
+
+该特性旨在创建一个用于打包独立Java应用程序的工具。Java应用的打包和分发一直是个老大难问题。用户希望Java应用的安装和运行方式和其他应用有相似的体验。比如，在Windows上只需要双击文件就可以运行。Java平台本身并没有提供实用的工具解决这个问题，通常都依靠第三方工具来完成]。这个JEP的目标是创建一个简单的Java打包工具`jpackage`。相对于第三方工具，`jpackage`只适用于比较简单的场景，不过对很多应用来说就已经足够好了
+
+jpackage工具将Java应用程序打包到特定于平台的程序包中，该程序包包含所有必需的依赖项。该应用程序可以作为普通JAR文件的集合或作为模块的集合提供。
+
+
+
+该`jpackage`工具将Java应用程序打包到特定于平台的程序包中，该程序包包含所有必需的依赖项。该应用程序可以作为普通JAR文件的集合或作为模块的集合提供。受支持的特定于平台的软件包格式为：
+
+- Linux：`deb`和`rpm`
+- macOS：`pkg`和`dmg`
+- Windows：`msi`和`exe`
+
+默认情况下，`jpackage`以最适合其运行系统的格式生成软件包
+
+
+
+
+
+### 使用
+
+假设您有一个包含JAR文件的应用程序，所有应用程序都位于一个名为的目录中`lib`，并且`lib/main.jar`包含主类。然后命令
+
+```sh
+jpackage --name myapp --input lib --main-jar main.jar
+```
+
+
+
+如果`MANIFEST.MF`文件中`main.jar`没有`Main-Class`属性，则必须显式指定主类：
+
+```java
+jpackage --name myapp --input lib --main-jar main.jar --main-class myapp.Main
+```
+
+
+
+
+
+
+
+## 友好的空指针异常
 
