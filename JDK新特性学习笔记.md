@@ -11748,3 +11748,322 @@ jpackage --name myapp --input lib --main-jar main.jar --main-class myapp.Main
 
 ## 友好的空指针异常
 
+### 概述
+
+`NullPointerException`是Java开发中经常会遇到的异常。在JDK 14之前的版本中，`NullPointerException`异常的消息只是简单的`null`，并不会告诉你任何有用的信息，只能根据异常产生的源文件的行号来查找。对于很长的引用链来说，很难定位到底是哪个对象为`null`。比如，类似`a.b.c.d`这样的引用方式，`a`、`b`和`c`中的任何一个为`null`，都会出现`NullPointerException`异常。仅靠行号无法快速定位问题所在。
+
+
+
+以前的异常信息：
+
+```sh
+Exception in thread "main" java.lang.NullPointerException
+```
+
+
+
+现在的异常信息：
+
+```sh
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Address.go()" because "<local1>.address" is null
+```
+
+
+
+这个功能需要通过选项`-XX:+ShowCodeDetailsInExceptionMessages`启用
+
+
+
+
+
+
+
+
+
+## Records记录类型
+
+### 概述
+
+通过record增强Java编程语言。record提供了一种紧凑的语法来声明类，这些类是浅层不可变数据的透明持有者
+
+我们经常听到这样的抱怨：“Java太冗长”、“Java规则过多”。首当其冲的就是充当简单集合的“数据载体”的类。为了写一个数据类，开发人员必须编写许多低价值、重复且容易出错的代码：构造函数、访问器、equals()、hashCode()和toString()等等。
+
+尽管IDE可以帮助开发人员编写数据载体类的绝大多数编码，但是这些代码仍然冗长。
+
+record是Java的一种新的类型。同枚举一样，record也是对类的一种限制。record放弃了类通常享有的特性：将API和表示解耦。但是作为回报，record使数据类变得非常简洁。
+
+
+
+### 以前的写法
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK_14_Records
+ * Package(包名): mao
+ * Class(类名): People
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/9
+ * Time(创建时间)： 17:27
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class People
+{
+    private String name;
+    private int age;
+
+    public People(String name, int age)
+    {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public int getAge()
+    {
+        return age;
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        People people = (People) o;
+
+        if (getAge() != people.getAge()) return false;
+        return getName() != null ? getName().equals(people.getName()) : people.getName() == null;
+    }
+
+    @Override
+    public int hashCode()
+    {
+        int result = getName() != null ? getName().hashCode() : 0;
+        result = 31 * result + getAge();
+        return result;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "People{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+}
+```
+
+
+
+特点：
+
+* 没有无参构造方法，需要初始化时对成员变量赋值
+* 成员变量只有 getter 方法
+* 覆写了 超类 Object 的 equals 、hashCode、toString 方法
+
+
+
+从表面上看，将Record是为了简化模板编码而生的，但是它还有“远大”的目标：modeling data as data（将数据建模为数据）。record应该更简单、简洁、数据不可变。
+
+
+
+
+
+### 现在的写法
+
+```java
+package mao;
+
+record People2(String name, int age)
+{
+
+}
+```
+
+
+
+
+
+因为record在语义上是数据的简单透明持有者，所以记录会自动获取很多标准成员：
+
+- 状态声明中的每个成员，都有一个 private final的字段；
+- 状态声明中的每个组件的公共读取访问方法，该方法和组件具有相同的名字；
+- 一个公共的构造函数，其签名与状态声明相同；
+- equals和hashCode的实现；
+- toString的实现。
+
+
+
+使用：
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK_14_Records
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/9
+ * Time(创建时间)： 17:26
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args)
+    {
+        People2 people2 = new People2("张三",17);
+        System.out.println(people2);
+        System.out.println(people2.name());
+        System.out.println(people2.age());
+        System.out.println(people2.hashCode());
+        System.out.println(people2.equals(new People2("张三",18)));
+        System.out.println(people2.equals(new People2("张三2",17)));
+        System.out.println(people2.equals(new People2("张三",17)));
+    }
+}
+```
+
+
+
+```sh
+People2[name=张三, age=17]
+张三
+17
+24021576
+false
+false
+true
+```
+
+
+
+
+
+### 限制
+
+* records不能扩展任何类，并且不能声明私有字段以外的实例字段。声明的任何其他字段都必须是静态的
+* records类都是隐含的final类，并且不能是抽象类。这些限制使得records的API仅由其状态描述定义，并且以后不能被其他类实现或继承
+
+
+
+![image-20231109173648909](img/JDK新特性学习笔记/image-20231109173648909.png)
+
+
+
+
+
+![image-20231109173804672](img/JDK新特性学习笔记/image-20231109173804672.png)
+
+
+
+
+
+
+
+### 在record中额外声明变量
+
+也可以显式声明从状态描述自动派生的任何成员。可以在没有正式参数列表的情况下声明构造函数（这种情况下，假定与状态描述相同），并且在正常构造函数主体正常完成时调用隐式初始化（this.x=x）。这样就可以在显式构造函数中仅执行其参数的验证等逻辑，并省略字段的初始化，例如：
+
+
+
+```java
+package mao;
+
+record People3(String name, int age)
+{
+    public People3
+    {
+        System.out.println(name);
+        System.out.println(age);
+    }
+}
+```
+
+
+
+```java
+package mao;
+
+/**
+ * Project name(项目名称)：JDK_14_Records
+ * Package(包名): mao
+ * Class(类名): Test2
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/9
+ * Time(创建时间)： 17:41
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test2
+{
+    public static void main(String[] args)
+    {
+        People3 people3 = new People3("张三", 29);
+    }
+}
+```
+
+
+
+```sh
+张三
+29
+```
+
+
+
+
+
+
+
+
+
+## G1的NUMA内存分配优化
+
+通过实现可识别非统一的内存访问（non-uniform memory access,NUMA)的内存分配，提高G1 在大型机器上的性能
+
+现代的多插槽计算机越来越多地具有非统一的内存访问（non-uniform memory access,NUMA），即内存与每个插槽或内核之间的距离并不相等。插槽之间的内存访问具有不同的性能特征，对更远的插槽的访问通常具有更大的延迟。
+
+并行收集器中通过启动`-XX:+UseParallelGC`能够感知NUMA，这个功能已经实现了多年了，这有助于提高跨多插槽运行单个JVM的配置的性能。其他HotSpot收集器没有此功能，这意味着他们无法利用这种垂直多路NUMA缩放功能。大型企业应用程序尤其倾向于在多个多插槽上以大堆配置运行，但是它们希望在单个JVM中运行具有可管理性优势。 使用G1收集器的用户越来越多地遇到这种扩展瓶颈。
+
+
+
+G1的堆组织为固定大小区域的集合。一个区域通常是一组物理页面，尽管使用大页面（通过 `-XX:+UseLargePages`）时，多个区域可能组成一个物理页面。
+
+如果指定了`+XX:+UseNUMA`选项，则在初始化JVM时，区域将平均分布在可用NUMA节点的总数上。
+
+在开始时固定每个区域的NUMA节点有些不灵活，但是可以通过以下增强来缓解。为了为mutator线程分配新的对象，G1可能需要分配一个新的区域。它将通过从NUMA节点中优先选择一个与当前线程绑定的空闲区域来执行此操作，以便将对象保留在新生代的同一NUMA节点上。如果在为变量分配区域的过程中，同一NUMA节点上没有空闲区域，则G1将触发垃圾回收。要评估的另一种想法是，从距离最近的NUMA节点开始，按距离顺序在其他NUMA节点中搜索自由区域。
+
+该特性不会尝试将对象保留在老年代的同一NUMA节点上。
+
+
+
+
+
+
+
+
+
+## JFR事件流
+
