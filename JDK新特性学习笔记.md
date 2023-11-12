@@ -12318,3 +12318,298 @@ Records Class 也是第二次出现的预览功能，它在 JDK 14 中也出现�
 
 ## 密封的类和接口
 
+### 概述
+
+通过密封的类和接口来增强 Java 编程语言，这是新的预览特性。Sealed **密封用于限制父类的使用，密封的类和接口可以限制被谁继承和实现。**
+
+这个特性的目标包括——允许类或接口的开发者来控制哪些代码负责实现，提供了比final修饰超类的声明的更多选择。
+
+在Java中，类层次结构通过继承实现代码的重用，父类的方法可以被许多子类继承。但是，类层次结构的目的并不总是重用代码。有时，其目的是对域中存在的各种可能性进行建模，例如图形库支持的形状类型或金融应用程序支持的贷款类型。当以这种方式使用类层次结构时，我们可能需要限制子类集从而来简化建模。
+
+
+
+### 使用
+
+因为我们引入了sealed class或interfaces，这些class或者interfaces只允许被指定的类或者interface进行继承和实现
+
+```java
+public sealed class Person permits Teacher , Student , SportMan , Doctor{ } //人类
+
+final class Teacher extends Person { } //老师
+
+sealed class Student extends Person permits MiddleSchoolStudent , UniversityStudent   { } //学生
+final class MiddleSchoolStudent extends Student { }  //中学生
+final class UniversityStudent extends Student { }  //大学生
+
+non-sealed class SportMan extends Person { }  //运动员
+non-sealed class Doctor extends Person{ } // 医生
+
+class PingPongMan extends SportMan {
+}
+```
+
+
+
+
+
+
+
+## 隐藏类
+
+该提案通过启用标准 API 来定义**无法发现**且具有**有限生命周期**的隐藏类，从而提高 JVM 上所有语言的效率。隐藏类是为框架（frameworks）所设计的，隐藏类不能直接被其他类的字节码使用，只能在运行时生成类并通过反射间接使用它们。通常来说基于JVM的很多语言都有动态生成类的机制，这样可以提高语言的灵活性和效率。
+
+* 隐藏类天生为框架设计的，在运行时生成内部的class。
+* 隐藏类只能通过反射访问，不能直接被其他类的字节码访问。
+* 隐藏类可以独立于其他类加载、卸载，这可以减少框架的内存占用。
+
+
+
+Hidden Classes就是不能直接被其他class的二进制代码使用的class。Hidden Classes主要被一些框架用来生成运行时类，但是这些类不是被用来直接使用的，而是通过反射机制来调用。
+比如在JDK8中引入的lambda表达式，JVM并不会在编译的时候将lambda表达式转换成为专门的类，而是在运行时将相应的字节码动态生成相应的类对象。
+
+那么我们希望这些动态生成的类需要具有什么特性呢？
+
+* 不可发现性。因为我们是为某些静态的类动态生成的动态类，所以我们希望把这个动态生成的类看做是静态类的一部分。所以我们不希望除了该静态类之外的其他机制发现。
+* 访问控制。我们希望在访问控制静态类的同时，也能控制到动态生成的类。
+* 生命周期。动态生成类的生命周期一般都比较短，我们并不需要将其保存和静态类的生命周期一致。
+
+
+
+API的支持
+所以我们需要一些API来定义无法发现的且具有有限生命周期的隐藏类。这将提高所有基于JVM的语言实现的效率。
+比如：
+
+* java.lang.reflect.Proxy可以定义隐藏类作为实现代理接口的代理类
+* java.lang.invoke.StringConcatFactory可以生成隐藏类来保存常量连接方法
+* java.lang.invoke.LambdaMetaFactory可以生成隐藏的nestmate类，以容纳访问封闭变量的lambda主体
+* 
+
+普通类是通过调用ClassLoader::defineClass创建的，而隐藏类是通过调用Lookup::defineHiddenClass创建的。这使JVM从提供的字节中派生一个隐藏类，链接该隐藏类，并返回提供对隐藏类的反射访问的查找对象。调用程序可以通过返回的查找对象来获取隐藏类的Class对象。
+
+
+
+
+
+
+
+## ZGC可扩展的低延迟垃圾收集器
+
+ZGC是Java 11引入的新的垃圾收集器（JDK9以后默认的垃圾回收器是G1），经过了多个实验阶段，自此终于成为正式特性。
+自 2018 年以来，ZGC 已增加了许多改进，从并发类卸载、取消使用未使用的内存、对类数据共享的支持到改进的 NUMA 感知。此外，最大堆大小从 4 TB 增加到 16 TB。支持的平台包括 Linux、Windows 和 MacOS。
+
+ZGC是一个重新设计的并发的垃圾回收器，通过减少 GC 停顿时间来提高性能。
+
+但是这并不是替换默认的GC，默认的GC仍然还是G1；之前需要通过-XX:+UnlockExperimentalVMOptions -XX:+UseZGC来启用ZGC，现在只需要-XX:+UseZGC就可以。相信不久的将来它必将成为默认的垃圾回收器。
+
+相关的参数有ZAllocationSpikeTolerance、ZCollectionInterval、ZFragmentationLimit、ZMarkStackSpaceLimit、ZProactive、ZUncommit、ZUncommitDelay ZGC-specific JFR events(ZAllocationStall、ZPageAllocation、ZPageCacheFlush、ZRelocationSet、ZRelocationSetGroup、ZUncommit)也从experimental变为product
+
+
+
+
+
+## EdDSA数字签名算法
+
+### 概述
+
+新加入基于Edwards-Curve数字签名算法(EdDSA-Edwards-Curve Digital Signature Algorithm)的加密签名，即**爱德华兹曲线数字签名算法**。
+
+在许多其它加密库（如 OpenSSL 和 BoringSSL）中得到支持。
+
+与 JDK 中的现有签名方案相比，EdDSA 具有更高的安全性和性能，因此备受关注。它已经在OpenSSL和BoringSSL等加密库中得到支持，在区块链领域用的比较多。
+
+EdDSA是一种现代的椭圆曲线方案，具有JDK中现有签名方案的优点。
+
+
+
+
+
+### 使用
+
+```java
+package mao;
+
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.util.Base64;
+
+/**
+ * Project name(项目名称)：JDK15_EdDSA
+ * Package(包名): mao
+ * Class(类名): Test1
+ * Author(作者）: mao
+ * Author QQ：1296193245
+ * GitHub：https://github.com/maomao124/
+ * Date(创建日期)： 2023/11/12
+ * Time(创建时间)： 17:14
+ * Version(版本): 1.0
+ * Description(描述)： 无
+ */
+
+public class Test1
+{
+    public static void main(String[] args) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException
+    {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        Signature signature = Signature.getInstance("Ed25519");
+        signature.initSign(keyPair.getPrivate());
+        signature.update("hello".getBytes(StandardCharsets.UTF_8));
+        byte[] s = signature.sign();
+        String encodedString = Base64.getEncoder().encodeToString(s);
+        System.out.println(encodedString);
+
+        signature.update("hello".getBytes(StandardCharsets.UTF_8));
+        s = signature.sign();
+        encodedString = Base64.getEncoder().encodeToString(s);
+        System.out.println(encodedString);
+
+        signature.update("world".getBytes(StandardCharsets.UTF_8));
+        s = signature.sign();
+        encodedString = Base64.getEncoder().encodeToString(s);
+        System.out.println(encodedString);
+
+        signature.update("hello world".getBytes(StandardCharsets.UTF_8));
+        s = signature.sign();
+        encodedString = Base64.getEncoder().encodeToString(s);
+        System.out.println(encodedString);
+
+        signature.initVerify(keyPair.getPublic());
+        System.out.println(signature.verify("hello".getBytes(StandardCharsets.UTF_8)));
+        System.out.println(signature.verify("world".getBytes(StandardCharsets.UTF_8)));
+        System.out.println(signature.verify("hello world".getBytes(StandardCharsets.UTF_8)));
+    }
+}
+```
+
+
+
+```sh
+n+dmyuGKd2J+Pl3wcALZSam9g5NosrTGtmAIOHj1sB9LGzk+Ir4NyMl0VjywqmqIguJw+6hmoklIbFFZzTMVCA==
+n+dmyuGKd2J+Pl3wcALZSam9g5NosrTGtmAIOHj1sB9LGzk+Ir4NyMl0VjywqmqIguJw+6hmoklIbFFZzTMVCA==
+Ejlzxtmi1sbqHKJgpis7gfNQDXil4B/W9N4Z8mHAQu7XNIMAKrROZLzXewggOQ1lc0fMXAGG+zmJy/ZiM1ODAw==
+lMuVMqv3HdXiX9Kr5GxbsDglLFzEqd+rnZSFRh2h/rXnWfYfV7oCQhZ5zUqYn+B7RDI7WX84jt09/edOkBMQAA==
+false
+false
+false
+```
+
+
+
+
+
+
+
+
+
+
+
+## 重新实现DatagramSocket API
+
+新的计划是JEP 353的后续，该方案重新实现了遗留的套接字API。
+java.net.datagram.Socket和java.net.MulticastSocket的当前实现可以追溯到JDK 1.0，那时IPv6还在开发中。因此，当前的多播套接字实现尝试调和IPv4和IPv6难以维护的方式。
+
+通过替换 java.net.datagram 的基础实现，重新实现旧版 DatagramSocket API。
+更改java.net.DatagramSocket 和 java.net.MulticastSocket 为更加简单、现代化的底层实现。提高了 JDK 的可维护性和稳定性。
+
+通过将java.net.datagram.Socket和java.net.MulticastSocket API的底层实现替换为更简单、更现代的实现来重新实现遗留的DatagramSocket API。
+新的实现：1.易于调试和维护;2.与Project Loom中正在探索的虚拟线程协同。
+
+
+
+
+
+
+
+## 禁用偏向锁定
+
+在默认情况下禁用偏向锁定，并弃用所有相关命令行选项。目标是确定是否需要继续支持偏置锁定的高维护成本的遗留同步优化，HotSpot虚拟机使用该优化来减少非竞争锁定的开销。尽管某些Java应用程序在禁用偏向锁后可能会出现性能下降，但偏向锁的性能提高通常不像以前那么明显。
+
+该特性默认禁用了biased locking(-XX:+UseBiasedLocking)，并且废弃了所有相关的命令行选型(BiasedLockingStartupDelay, BiasedLockingBulkRebiasThreshold, BiasedLockingBulkRevokeThreshold, BiasedLockingDecayTime, UseOptoBiasInlining, PrintBiasedLockingStatistics and PrintPreciseBiasedLockingStatistics)
+
+
+
+
+
+
+
+## Shenandoah垃圾回收算法转正
+
+Shenandoah垃圾回收算法终于从实验特性转变为产品特性，这是一个从 JDK 12 引入的回收算法，该算法通过与正在运行的 Java 线程同时进行疏散工作来减少 GC 暂停时间。Shenandoah 的暂停时间与堆大小无关，无论堆栈是 200 MB 还是 200 GB，都具有相同的一致暂停时间。
+
+怎么形容Shenandoah和ZGC的关系呢？异同点大概如下：
+
+* 相同点：性能几乎可认为是相同的
+* 不同点：ZGC是Oracle JDK的。而Shenandoah只存在于OpenJDK中
+
+打开方式：使用-XX:+UseShenandoahGC命令行参数打开。
+
+Shenandoah在JDK12被作为experimental引入，在JDK15变为Production；之前需要通过-XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC来启用，现在只需要-XX:+UseShenandoahGC即可启用
+
+
+
+
+
+
+
+## 外部存储器访问API
+
+引入一个 API，以允许 Java 程序安全、有效地访问 Java 堆之外的外部存储器。如本机、持久和托管堆。
+
+有许多Java程序是访问外部内存的，比如Ignite和MapDB。该API将有助于避免与垃圾收集相关的成本以及与跨进程共享内存以及通过将文件映射到内存来序列化和反序列化内存内容相关的不可预测性。该Java API目前没有为访问外部内存提供令人满意的解决方案。但是在新的提议中，API不应该破坏JVM的安全性。
+
+Foreign-Memory Access API在JDK14被作为incubating API引入，在JDK15处于Second Incubator，提供了改进。
+
+
+
+
+
+
+
+## 移除Solaris和SPARC端口
+
+删除对Solaris/SPARC、Solaris/x64和Linux/SPARC端口的源代码和构建支持，在JDK 14中被标记为废弃，在JDK15版本正式移除。
+
+许多正在开发的项目和功能（如Valhalla、Loom和Panama）需要进行重大更改以适应CPU架构和操作系统特定代码。
+
+近年来，Solaris 和 SPARC 都已被 Linux 操作系统和英特尔处理器取代。放弃对 Solaris 和 SPARC 端口的支持将使 OpenJDK 社区的贡献者能够加速开发新功能，从而推动平台向前发展。
+
+
+
+
+
+
+
+## 移除了Nashorn JavaScript脚本引擎
+
+Nashorn是在JDK提出的脚本执行引擎，该功能是 2014 年 3 月发布的 JDK 8 的新特性。在JDK11就已经把它标记为废弃了，JDK15完全移除。
+
+在JDK11中取以代之的是GraalVM。GraalVM是一个运行时平台，它支持Java和其他基于Java字节码的语言，但也支持其他语言，如JavaScript，Ruby，Python或LLVM。性能是Nashorn的2倍以上。
+
+JDK15移除了Nashorn JavaScript Engine及jjs 命令行工具。具体就是jdk.scripting.nashorn及jdk.scripting.nashorn.shell这两个模块被移除了。
+
+Graal VM在HotSpot VM基础上增强而成的跨语言全栈虚拟机，可以作为“任何语言”的运行平台使用。语言包括：Java、Scala、Groovy、Kotlin；C、C++、JavaScript、Ruby、Python、R等
+
+
+
+
+
+## 废除RMI激活以便在将来进行删除
+
+MI Activation被标记为Deprecate,将会在未来的版本中删除。RMI激活机制是RMI中一个过时的部分，自Java 8以来一直是可选的而非必选项。RMI激活机制增加了持续的维护负担。RMI的其他部分暂时不会被弃用。
+
+RMI jdk1.2引入，EJB
+
+在RMI系统中，我们使用延迟激活。延迟激活将激活对象推迟到客户第一次使用（即第一次方法调用）之前。
+既然RMI Activation这么好用，为什么要废弃呢？
+因为对于现代应用程序来说，分布式系统大部分都是基于Web的，web服务器已经解决了穿越防火墙，过滤请求，身份验证和安全性的问题，并且也提供了很多延迟加载的技术。
+所以在现代应用程序中，RMI Activation已经很少被使用到了。并且在各种开源的代码库中，也基本上找不到RMI Activation的使用代码了。
+为了减少RMI Activation的维护成本，在JDK8中，RMI Activation被置为可选的。现在在JDK15中，终于可以废弃了。
+
+
+
+
+
+
+
+## TreeMap
+
